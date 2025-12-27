@@ -1,0 +1,150 @@
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook } from 'react-icons/fi';
+import './Navbar.css';
+
+const Navbar = () => {
+  const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+    setMobileMenuOpen(false);
+  };
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  return (
+    <nav className="navbar">
+      <div className="container">
+        <div className="navbar-content">
+          <Link to="/" className="navbar-brand" onClick={() => setMobileMenuOpen(false)}>
+            <FiBook className="brand-icon" />
+            <span className="brand-text">NounPaddi</span>
+          </Link>
+
+          {/* Desktop Menu */}
+          <div className="navbar-menu desktop-menu">
+            {user ? (
+              <>
+                {user.role === 'student' && (
+                  <>
+                    <Link to="/explore" className="nav-link">Explore Courses</Link>
+                    <Link to="/practice" className="nav-link">Practice Exam</Link>
+                  </>
+                )}
+                {user.role === 'admin' && (
+                  <>
+                    <Link to="/admin/upload" className="nav-link">Upload Materials</Link>
+                    <Link to="/admin/manage" className="nav-link">Manage Content</Link>
+                  </>
+                )}
+                <button
+                  onClick={toggleTheme}
+                  className="theme-toggle"
+                  aria-label="Toggle theme"
+                >
+                  {theme === 'light' ? <FiMoon size={20} /> : <FiSun size={20} />}
+                </button>
+                <div className="nav-user">
+                  <FiUser />
+                  <span>{user.name}</span>
+                </div>
+                <button onClick={handleLogout} className="btn btn-sm btn-secondary">
+                  <FiLogOut /> Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={toggleTheme}
+                  className="theme-toggle"
+                  aria-label="Toggle theme"
+                >
+                  {theme === 'light' ? <FiMoon size={20} /> : <FiSun size={20} />}
+                </button>
+                <Link to="/login" className="btn btn-sm btn-secondary">Login</Link>
+                <Link to="/signup" className="btn btn-sm btn-primary">Sign Up</Link>
+              </>
+            )}
+          </div>
+
+          {/* Mobile Menu Toggle */}
+          <button className="mobile-menu-toggle" onClick={toggleMobileMenu}>
+            {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="mobile-menu">
+            {user ? (
+              <>
+                <div className="mobile-user-info">
+                  <FiUser size={20} />
+                  <span>{user.name}</span>
+                  <span className="user-role">({user.role})</span>
+                </div>
+                {user.role === 'student' && (
+                  <>
+                    <Link to="/explore" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Explore Courses
+                    </Link>
+                    <Link to="/practice" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Practice Exam
+                    </Link>
+                  </>
+                )}
+                {user.role === 'admin' && (
+                  <>
+                    <Link to="/admin/upload" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Upload Materials
+                    </Link>
+                    <Link to="/admin/manage" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Manage Content
+                    </Link>
+                  </>
+                )}
+                <button
+                  onClick={toggleTheme}
+                  className="theme-toggle-mobile"
+                >
+                  {theme === 'light' ? <FiMoon size={18} /> : <FiSun size={18} />}
+                  <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                </button>
+                <button onClick={handleLogout} className="btn btn-danger mobile-logout-btn">
+                  <FiLogOut /> Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                  Login
+                </Link>
+                <Link to="/signup" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                  Sign Up
+                </Link>
+                <button
+                  onClick={toggleTheme}
+                  className="theme-toggle-mobile"
+                >
+                  {theme === 'light' ? <FiMoon size={18} /> : <FiSun size={18} />}
+                  <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;

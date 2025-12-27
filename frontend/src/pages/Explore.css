@@ -1,0 +1,459 @@
+.explore-container {
+  min-height: calc(100vh - 80px);
+  padding: 60px 0;
+  background: var(--bg-primary);
+}
+
+.explore-header {
+  text-align: center;
+  margin-bottom: 48px;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.explore-header h1 {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.explore-header p {
+  color: var(--text-secondary);
+  font-size: 18px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Search Section */
+.search-section {
+  margin-bottom: 48px;
+  animation: fadeInUp 0.6s ease-out 0.1s backwards;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--card-bg);
+  padding: 16px 24px;
+  border-radius: 16px;
+  border: 2px solid var(--border-color);
+  max-width: 700px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+}
+
+.search-bar:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 4px var(--primary-light), var(--shadow-lg);
+}
+
+.search-icon {
+  color: var(--text-tertiary);
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 16px;
+  outline: none;
+  font-weight: 500;
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Faculties Section */
+.faculties-section {
+  margin-bottom: 48px;
+  animation: fadeInUp 0.6s ease-out 0.2s backwards;
+}
+
+.faculties-section h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.faculty-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.faculty-chip {
+  padding: 12px 24px;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.faculty-chip:hover {
+  background: var(--gradient-primary);
+  color: white;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.faculty-chip.active {
+  background: var(--gradient-primary);
+  color: white;
+  border-color: transparent;
+  box-shadow: var(--shadow-md);
+}
+
+/* Courses Section */
+.courses-section {
+  animation: fadeInUp 0.6s ease-out 0.3s backwards;
+}
+
+.courses-section h2 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  color: var(--text-primary);
+}
+
+.course-card {
+  background-color: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  padding: 28px;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.course-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.course-card:hover::before {
+  transform: scaleX(1);
+}
+
+.course-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--primary-color);
+}
+
+.course-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.course-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--gradient-primary);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 28px;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+}
+
+.course-card:hover .course-icon {
+  transform: rotate(5deg) scale(1.1);
+}
+
+.course-info {
+  flex: 1;
+}
+
+.course-code {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.course-card h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.course-name {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  flex: 1;
+  margin: 12px 0;
+}
+
+.course-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 2px solid var(--border-color);
+}
+
+.course-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.course-credits {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.course-arrow {
+  color: var(--primary-color);
+  transition: all 0.3s ease;
+  font-size: 24px;
+}
+
+.course-card:hover .course-arrow {
+  transform: translateX(4px);
+}
+
+/* Stats Section */
+.course-stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.no-results-icon {
+  font-size: 64px;
+  color: var(--text-tertiary);
+  margin-bottom: 24px;
+  opacity: 0.5;
+}
+
+.no-results p {
+  margin-top: 16px;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 20px;
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background-color: var(--bg-secondary);
+  border-radius: 20px;
+  border: 2px dashed var(--border-color);
+}
+
+.empty-state-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  background: var(--gradient-primary);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 40px;
+}
+
+.empty-state h3 {
+  font-size: 24px;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .explore-header h1 {
+    font-size: 40px;
+  }
+
+  .courses-section h2 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .explore-container {
+    padding: 40px 0;
+  }
+
+  .explore-header h1 {
+    font-size: 36px;
+  }
+
+  .explore-header p {
+    font-size: 16px;
+  }
+
+  .search-bar {
+    padding: 14px 20px;
+  }
+
+  .faculty-chips {
+    gap: 10px;
+  }
+
+  .faculty-chip {
+    font-size: 13px;
+    padding: 10px 20px;
+  }
+
+  .course-card {
+    padding: 24px;
+  }
+
+  .course-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+  }
+
+  .course-card h3 {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .explore-header h1 {
+    font-size: 28px;
+  }
+
+  .explore-header p {
+    font-size: 14px;
+  }
+
+  .search-bar {
+    padding: 12px 16px;
+  }
+
+  .faculty-chip {
+    font-size: 12px;
+    padding: 8px 16px;
+  }
+
+  .course-card {
+    padding: 20px;
+  }
+
+  .course-header {
+    gap: 12px;
+  }
+
+  .course-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+
+  .course-card h3 {
+    font-size: 16px;
+  }
+
+  .course-name {
+    font-size: 13px;
+  }
+
+  .course-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+}
