@@ -9,7 +9,7 @@ const { protect, authorize } = require('../middleware/auth');
 
 router.route('/')
   .get(getDepartments)
-  .post(protect, authorize('admin'), createDepartment);
+  .post(protect, createDepartment); // Allow both students and admins to create departments
 
 router.route('/:id')
   .get(getDepartment);

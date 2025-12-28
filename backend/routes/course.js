@@ -13,7 +13,7 @@ const { protect, authorize } = require('../middleware/auth');
 
 router.route('/')
   .get(getCourses)
-  .post(protect, authorize('admin'), createCourse);
+  .post(protect, createCourse); // Allow both students and admins to create courses
 
 router.get('/search', searchCourses);
 router.get('/department/:departmentId', getCoursesByDepartment);

@@ -2,6 +2,7 @@ const Material = require('../models/Material');
 const Summary = require('../models/Summary');
 const Question = require('../models/Question');
 const { summarizeText, generateQuestions, formatQuestionsToMCQ } = require('../utils/aiHelper');
+const crypto = require('crypto');
 
 // @desc    Upload course material
 // @route   POST /api/materials/upload
@@ -265,6 +266,195 @@ exports.getAllMaterials = async (req, res) => {
       success: true,
       count: materialsWithStatus.length,
       data: materialsWithStatus,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Upload course material (Student)
+// @route   POST /api/materials/student-upload
+// @access  Private/Student
+exports.studentUploadMaterial = async (req, res) => {
+  try {
+    console.log('=== Student Upload Debug Info ===');
+    console.log('File:', req.file);
+    console.log('Body:', req.body);
+    console.log('User:', req.user);
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please upload a file',
+      });
+    }
+
+    const { title, courseId } = req.body;
+
+    if (!courseId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select a course',
+      });
+    }
+
+    // Generate file hash for duplicate detection
+    const fileHash = crypto.createHash('sha256').update(req.file.buffer || req.file.path).digest('hex');
+
+    // Check for duplicate
+    const duplicate = await Material.findDuplicate(courseId, fileHash);
+    if (duplicate) {
+      return res.status(409).json({
+        success: false,
+        message: 'This material has already been uploaded for this course',
+        existingMaterial: {
+          title: duplicate.title,
+          uploadedBy: duplicate.uploadedBy,
+          uploadDate: duplicate.createdAt,
+        },
+      });
+    }
+
+    console.log('Creating material with data:', {
+      title,
+      courseId,
+      cloudinaryUrl: req.file.path,
+      cloudinaryPublicId: req.file.filename,
+      uploadedBy: req.user._id,
+      uploadedByRole: 'student',
+      fileHash,
+    });
+
+    const material = await Material.create({
+      title,
+      courseId,
+      cloudinaryUrl: req.file.path,
+      cloudinaryPublicId: req.file.filename,
+      fileType: req.file.mimetype,
+      uploadedBy: req.user._id,
+      uploadedByRole: 'student',
+      fileHash,
+      status: 'approved', // Auto-approve for now
+      processingStatus: 'pending',
+    });
+
+    console.log('Material created successfully:', material);
+
+    // Auto-generate summary and questions in background
+    generateSummaryAndQuestions(material._id, req.user._id).catch(err => {
+      console.error('Background processing error:', err);
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Material uploaded successfully! Summary and questions are being generated.',
+      data: material,
+    });
+  } catch (error) {
+    console.error('=== Student Upload Error ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};
+
+// Helper function to generate summary and questions in background
+async function generateSummaryAndQuestions(materialId, userId) {
+  try {
+    const material = await Material.findById(materialId);
+    if (!material) {
+      console.error('Material not found for background processing:', materialId);
+      return;
+    }
+
+    // Update status to processing
+    material.processingStatus = 'processing';
+    await material.save();
+
+    console.log(`Starting background processing for material: ${materialId}`);
+
+    // Generate summary
+    const summaryText = await summarizeText(null, material.cloudinaryUrl, material._id, userId);
+
+    // Save summary to Material model
+    material.summary = summaryText;
+    material.hasSummary = true;
+
+    // Also create Summary document for backwards compatibility
+    await Summary.create({
+      materialId: material._id,
+      summaryText,
+    });
+
+    console.log(`Summary generated for material: ${materialId}`);
+
+    // Generate questions
+    const generatedQuestions = await generateQuestions(null, material.cloudinaryUrl, material._id, userId);
+    const mcqQuestions = formatQuestionsToMCQ(generatedQuestions, '');
+
+    // Save questions to database
+    for (const q of mcqQuestions) {
+      await Question.create({
+        materialId: material._id,
+        courseId: material.courseId,
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        difficulty: q.difficulty,
+      });
+    }
+
+    material.hasQuestions = true;
+    material.processingStatus = 'completed';
+    material.contributorPoints = 10; // Award points for successful upload
+
+    await material.save();
+
+    console.log(`Processing completed for material: ${materialId}`);
+  } catch (error) {
+    console.error('Error in background processing:', error);
+
+    // Update material with error status
+    const material = await Material.findById(materialId);
+    if (material) {
+      material.processingStatus = 'failed';
+      material.processingError = error.message;
+      await material.save();
+    }
+  }
+}
+
+// @desc    Get student's upload statistics
+// @route   GET /api/materials/my-stats
+// @access  Private/Student
+exports.getStudentStats = async (req, res) => {
+  try {
+    const materials = await Material.find({
+      uploadedBy: req.user._id,
+      uploadedByRole: 'student'
+    });
+
+    const stats = {
+      totalUploads: materials.length,
+      totalPoints: materials.reduce((sum, m) => sum + (m.contributorPoints || 0), 0),
+      approved: materials.filter(m => m.status === 'approved').length,
+      pending: materials.filter(m => m.status === 'pending').length,
+      rejected: materials.filter(m => m.status === 'rejected').length,
+      processing: materials.filter(m => m.processingStatus === 'processing').length,
+      completed: materials.filter(m => m.processingStatus === 'completed').length,
+    };
+
+    res.status(200).json({
+      success: true,
+      data: stats,
     });
   } catch (error) {
     res.status(500).json({

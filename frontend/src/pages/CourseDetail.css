@@ -283,31 +283,56 @@
   animation: fadeIn 0.3s ease-in;
 }
 
-.summary-text {
+.summary-section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.section-content {
   font-size: 16px;
   line-height: 1.8;
   color: #2d3748;
-  white-space: pre-wrap;
-  background: #f7fafc;
-  padding: 32px;
-  border-radius: 12px;
-  border-left: 4px solid #667eea;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+.section-content p {
+  margin-bottom: 12px;
   text-align: justify;
 }
 
-.summary-text::selection {
-  background: transparent;
-  color: inherit;
+.bullet-point {
+  padding-left: 24px;
+  margin-bottom: 8px;
+  position: relative;
+  line-height: 1.6;
 }
 
-.summary-text::-moz-selection {
-  background: transparent;
-  color: inherit;
+.bullet-point::before {
+  content: '•';
+  position: absolute;
+  left: 8px;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.numbered-item {
+  padding-left: 8px;
+  margin-bottom: 12px;
+  line-height: 1.6;
+  color: #2d3748;
+}
+
+.numbered-item .number {
+  color: #667eea;
+  font-weight: 600;
+  margin-right: 8px;
 }
 
 .no-summary-placeholder,

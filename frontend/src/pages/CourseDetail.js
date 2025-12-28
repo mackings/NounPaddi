@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
+import { splitSummaryIntoSections, formatLine } from '../utils/formatSummary';
 import {
   FiBook,
   FiFileText,
@@ -187,9 +188,42 @@ const CourseDetail = () => {
 
                       {selectedMaterial.hasSummary ? (
                         <div className="summary-content">
-                          <div className="summary-text">
-                            {selectedMaterial.summary}
-                          </div>
+                          {splitSummaryIntoSections(selectedMaterial.summary).map((section, index) => (
+                            <div key={index} className="summary-section">
+                              {section.title && <h3 className="section-title">{formatLine(section.title)}</h3>}
+                              <div className="section-content">
+                                {section.content.split('\n').map((line, lineIndex) => {
+                                  const trimmedLine = line.trim();
+                                  if (!trimmedLine) return null;
+
+                                  // Check if line is a bullet point
+                                  if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
+                                    const cleanedText = formatLine(trimmedLine.replace(/^[•\-\*]\s*/, ''));
+                                    return (
+                                      <div key={lineIndex} className="bullet-point">
+                                        {cleanedText}
+                                      </div>
+                                    );
+                                  }
+
+                                  // Check if line is a numbered list
+                                  const numberedMatch = trimmedLine.match(/^\d+\.\s+(.+)$/);
+                                  if (numberedMatch) {
+                                    const number = trimmedLine.match(/^\d+\./)[0];
+                                    const content = formatLine(numberedMatch[1]);
+                                    return (
+                                      <div key={lineIndex} className="numbered-item">
+                                        <span className="number">{number}</span> {content}
+                                      </div>
+                                    );
+                                  }
+
+                                  // Regular paragraph
+                                  return <p key={lineIndex}>{formatLine(trimmedLine)}</p>;
+                                })}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       ) : (
                         <div className="no-summary-placeholder">
