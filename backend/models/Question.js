@@ -15,15 +15,22 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  questionType: {
+    type: String,
+    enum: ['multiple-choice', 'true-false', 'multi-select'],
+    default: 'multiple-choice',
+  },
   options: [{
     type: String,
     required: true,
   }],
   correctAnswer: {
-    type: Number,
+    type: mongoose.Schema.Types.Mixed, // Can be Number (single) or Array (multi-select)
     required: true,
-    min: 0,
-    max: 3,
+  },
+  explanation: {
+    type: String,
+    default: '',
   },
   difficulty: {
     type: String,

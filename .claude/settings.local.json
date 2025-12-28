@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(node test-models.js:*)"
+      "Bash(node test-models.js:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(node fix-questions.js:*)",
+      "Bash(node migrate-dates.js:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)"
     ]
   }
 }

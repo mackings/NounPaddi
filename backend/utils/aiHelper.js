@@ -216,18 +216,22 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
     // Initialize Gemini model
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    const prompt = `Based on the following educational content, generate 50 high-quality multiple-choice questions.
+    const prompt = `Based on the following educational content, generate 50 high-quality practice questions with a mix of different question types.
 
-Requirements for each question:
-1. Question should test understanding of key concepts from different parts of the material
-2. Provide 4 options (A, B, C, D)
-3. Indicate the correct answer
-4. Include a brief explanation for the correct answer
-5. Vary difficulty levels (easy, medium, hard) - mix them throughout
-6. Cover a wide range of topics from the material
+Requirements:
+1. Generate 30 multiple-choice questions (4 options each)
+2. Generate 10 True/False questions (2 options: True, False)
+3. Generate 10 multi-select questions (4 options with 2 correct answers marked)
+4. Questions should test understanding of key concepts from different parts of the material
+5. Include a brief explanation for each correct answer
+6. Vary difficulty levels (easy, medium, hard) - mix them throughout
+7. Cover a wide range of topics from the material
 
 Format each question as:
+
+For Multiple Choice:
 Q[number]: [Question text]
+Type: multiple-choice
 A) [Option A]
 B) [Option B]
 C) [Option C]
@@ -236,12 +240,32 @@ Correct Answer: [Letter]
 Explanation: [Brief explanation]
 Difficulty: [easy/medium/hard]
 
+For True/False:
+Q[number]: [Question text]
+Type: true-false
+A) True
+B) False
+Correct Answer: [Letter]
+Explanation: [Brief explanation]
+Difficulty: [easy/medium/hard]
+
+For Multi-Select (multiple correct answers):
+Q[number]: [Question text]
+Type: multi-select
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answers: [Letters separated by comma, e.g., A, C]
+Explanation: [Brief explanation]
+Difficulty: [easy/medium/hard]
+
 ---
 
 Educational Content:
 ${truncatedText}
 
-Generate 50 questions:`;
+Generate 50 questions (30 multiple-choice, 10 true-false, 10 multi-select):`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -306,19 +330,23 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
         }
       },
       {
-        text: `Based on this PDF educational content, generate 50 high-quality multiple-choice questions.
+        text: `Based on this PDF educational content, generate 50 high-quality practice questions with a mix of different question types.
 
-Requirements for each question:
-1. Question should test understanding of key concepts from across the entire document
-2. Provide 4 options (A, B, C, D)
-3. Indicate the correct answer
-4. Include a brief explanation for the correct answer
-5. Vary difficulty levels (easy, medium, hard) - distribute them evenly
-6. Cover different sections and topics from the material
-7. Ensure questions span from the beginning, middle, and end of the document
+Requirements:
+1. Generate 30 multiple-choice questions (4 options each)
+2. Generate 10 True/False questions (2 options: True, False)
+3. Generate 10 multi-select questions (4 options with 2 correct answers marked)
+4. Questions should test understanding of key concepts from across the entire document
+5. Include a brief explanation for each correct answer
+6. Vary difficulty levels (easy, medium, hard) - distribute them evenly
+7. Cover different sections and topics from the material
+8. Ensure questions span from the beginning, middle, and end of the document
 
 Format each question as:
+
+For Multiple Choice:
 Q[number]: [Question text]
+Type: multiple-choice
 A) [Option A]
 B) [Option B]
 C) [Option C]
@@ -327,9 +355,29 @@ Correct Answer: [Letter]
 Explanation: [Brief explanation]
 Difficulty: [easy/medium/hard]
 
+For True/False:
+Q[number]: [Question text]
+Type: true-false
+A) True
+B) False
+Correct Answer: [Letter]
+Explanation: [Brief explanation]
+Difficulty: [easy/medium/hard]
+
+For Multi-Select (multiple correct answers):
+Q[number]: [Question text]
+Type: multi-select
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answers: [Letters separated by comma, e.g., A, C]
+Explanation: [Brief explanation]
+Difficulty: [easy/medium/hard]
+
 ---
 
-Generate 50 questions:`
+Generate 50 questions (30 multiple-choice, 10 true-false, 10 multi-select):`
       },
     ]);
 
@@ -401,6 +449,18 @@ function formatQuestionsToMCQ(generatedQuestions, originalText) {
         const questionLine = lines[0]?.trim();
         if (!questionLine) return;
 
+        console.log(`\n--- Processing Question ${index + 1} ---`);
+        console.log(`Question: ${questionLine.substring(0, 80)}...`);
+
+        // Extract question type
+        const typeLine = lines.find(line => line.includes('Type:'));
+        let questionType = 'multiple-choice'; // default
+        if (typeLine) {
+          if (typeLine.includes('true-false')) questionType = 'true-false';
+          else if (typeLine.includes('multi-select')) questionType = 'multi-select';
+        }
+        console.log(`Question type: ${questionType}`);
+
         // Extract options
         const options = [];
         const optionPattern = /^[A-D]\)/;
@@ -411,14 +471,54 @@ function formatQuestionsToMCQ(generatedQuestions, originalText) {
           }
         });
 
-        // Extract correct answer
-        const correctAnswerLine = lines.find(line => line.includes('Correct Answer:'));
-        let correctAnswer = 0;
+        // Extract correct answer(s)
+        let correctAnswer;
+        const correctAnswerLine = lines.find(line =>
+          line.includes('Correct Answer:') || line.includes('Correct Answers:')
+        );
+
         if (correctAnswerLine) {
-          const match = correctAnswerLine.match(/[A-D]/);
-          if (match) {
-            correctAnswer = match[0].charCodeAt(0) - 65; // Convert A=0, B=1, C=2, D=3
+          console.log(`Parsing correct answer from: "${correctAnswerLine}"`);
+
+          if (questionType === 'multi-select') {
+            // For multi-select, extract multiple letters AFTER the colon (e.g., "Correct Answers: A, C")
+            const afterColon = correctAnswerLine.split(':')[1];
+            if (afterColon) {
+              const matches = afterColon.match(/[A-D]/g);
+              if (matches && matches.length > 0) {
+                correctAnswer = matches.map(letter => letter.charCodeAt(0) - 65);
+                console.log(`Multi-select correct answers: ${matches.join(', ')} -> indices: ${correctAnswer.join(', ')}`);
+              } else {
+                console.warn('Failed to parse multi-select answer, using fallback [0]');
+                correctAnswer = [0]; // fallback
+              }
+            } else {
+              console.warn('Failed to find colon in multi-select answer line');
+              correctAnswer = [0]; // fallback
+            }
+          } else {
+            // For single answer questions - extract the letter AFTER the colon
+            // Match pattern: "Correct Answer: B" or "Correct Answer: B)"
+            const match = correctAnswerLine.match(/:\s*([A-D])/);
+            if (match && match[1]) {
+              const letter = match[1];
+              correctAnswer = letter.charCodeAt(0) - 65; // Convert A=0, B=1, C=2, D=3
+              console.log(`Single answer: ${letter} -> index: ${correctAnswer}`);
+            } else {
+              console.warn(`Failed to parse answer from: "${correctAnswerLine}", using fallback 0`);
+              correctAnswer = 0; // fallback
+            }
           }
+        } else {
+          console.warn('No "Correct Answer" line found, using default');
+          correctAnswer = questionType === 'multi-select' ? [0] : 0;
+        }
+
+        // Extract explanation
+        const explanationLine = lines.find(line => line.includes('Explanation:'));
+        let explanation = '';
+        if (explanationLine) {
+          explanation = explanationLine.replace(/Explanation:/i, '').trim();
         }
 
         // Extract difficulty
@@ -429,12 +529,15 @@ function formatQuestionsToMCQ(generatedQuestions, originalText) {
           else if (difficultyLine.includes('hard')) difficulty = 'hard';
         }
 
-        // Only add if we have valid options
-        if (options.length >= 4) {
+        // Validate options based on question type
+        const requiredOptions = questionType === 'true-false' ? 2 : 4;
+        if (options.length >= requiredOptions) {
           questions.push({
             questionText: questionLine,
-            options: options.slice(0, 4),
+            questionType: questionType,
+            options: options.slice(0, requiredOptions),
             correctAnswer: correctAnswer,
+            explanation: explanation,
             difficulty: difficulty,
           });
         }
@@ -457,8 +560,10 @@ function formatQuestionsToMCQ(generatedQuestions, originalText) {
 
         questions.push({
           questionText: `Which of the following concepts is discussed in this material?`,
+          questionType: 'multiple-choice',
           options: randomWords,
           correctAnswer: 0,
+          explanation: 'This is a generated question based on the material content.',
           difficulty: 'medium',
         });
       }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import { formatDate } from '../utils/dateHelper';
 import {
   FiFileText,
   FiGrid,
@@ -103,14 +104,6 @@ const AdminMaterials = () => {
         text: error.response?.data?.message || 'Failed to delete material'
       });
     }
-  };
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
   };
 
   if (loading) {

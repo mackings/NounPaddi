@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import { convertHalfToTrueFalse } from '../utils/questionTransformer';
 import { FiCheckCircle, FiXCircle, FiAward } from 'react-icons/fi';
 import './Practice.css';
 
@@ -8,7 +9,7 @@ const Practice = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [selectedAnswer, setSelectedAnswer] = useState(null); // Single answer (number) or array of numbers
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState([]);
@@ -32,7 +33,11 @@ const Practice = () => {
     try {
       setLoading(true);
       const response = await api.get(`/questions/course/${courseId}`);
-      setQuestions(response.data.data);
+
+      // Convert 50% to True/False, keep rest as single-answer
+      const transformedQuestions = convertHalfToTrueFalse(response.data.data);
+
+      setQuestions(transformedQuestions);
       setSelectedCourse(courseId);
       setCurrentQuestionIndex(0);
       setScore(0);
@@ -46,33 +51,80 @@ const Practice = () => {
   };
 
   const handleAnswerSelect = (answerIndex) => {
-    setSelectedAnswer(answerIndex);
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionType = currentQuestion.questionType || 'multiple-choice';
+
+    if (questionType === 'multi-select') {
+      // For multi-select, toggle the answer in an array
+      const currentAnswers = Array.isArray(selectedAnswer) ? selectedAnswer : [];
+
+      if (currentAnswers.includes(answerIndex)) {
+        // Remove if already selected
+        setSelectedAnswer(currentAnswers.filter(idx => idx !== answerIndex));
+      } else {
+        // Add if not selected
+        setSelectedAnswer([...currentAnswers, answerIndex].sort());
+      }
+    } else {
+      // For single answer questions (multiple-choice, true-false)
+      setSelectedAnswer(answerIndex);
+    }
   };
 
   const handleSubmitAnswer = async () => {
-    if (selectedAnswer === null) return;
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionType = currentQuestion.questionType || 'multiple-choice';
+
+    // Validate that an answer is selected
+    if (selectedAnswer === null || selectedAnswer === undefined) return;
 
     try {
-      const response = await api.post(
-        `/questions/${questions[currentQuestionIndex]._id}/check`,
-        { answer: selectedAnswer }
-      );
+      // Check if this is a transformed True/False question (has correctAnswer field)
+      if (questionType === 'true-false' && currentQuestion.correctAnswer !== undefined) {
+        // Client-side checking for transformed True/False questions
+        const isCorrect = currentQuestion.correctAnswer === selectedAnswer;
 
-      setShowResult(true);
-      setAnswers([...answers, response.data.data]);
+        setShowResult(true);
+        setAnswers([...answers, {
+          isCorrect,
+          correctAnswer: currentQuestion.correctAnswer,
+          explanation: currentQuestion.explanation || (isCorrect ? 'Correct!' : 'Incorrect.'),
+          questionType: 'true-false'
+        }]);
 
-      if (response.data.data.isCorrect) {
-        setScore(score + 1);
+        if (isCorrect) {
+          setScore(score + 1);
+        }
+      } else {
+        // Backend API check for original multiple-choice questions
+        const response = await api.post(
+          `/questions/${currentQuestion._id}/check`,
+          { answer: selectedAnswer }
+        );
+
+        setShowResult(true);
+        setAnswers([...answers, response.data.data]);
+
+        if (response.data.data.isCorrect) {
+          setScore(score + 1);
+        }
       }
     } catch (error) {
       console.error('Error checking answer:', error);
+      setShowResult(true);
+      setAnswers([...answers, {
+        isCorrect: false,
+        correctAnswer: null,
+        explanation: 'Error checking answer. Please try again.',
+        questionType
+      }]);
     }
   };
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null);
+      setSelectedAnswer(null); // Reset to null for all question types
       setShowResult(false);
     } else {
       setExamComplete(true);
@@ -175,6 +227,39 @@ const Practice = () => {
   }
 
   const currentQuestion = questions[currentQuestionIndex];
+  const questionType = currentQuestion.questionType || 'multiple-choice';
+
+  // Helper to check if an option is selected (works for both single and multi-select)
+  const isOptionSelected = (index) => {
+    if (questionType === 'multi-select') {
+      return Array.isArray(selectedAnswer) && selectedAnswer.includes(index);
+    }
+    return selectedAnswer === index;
+  };
+
+  // Helper to check if an option is correct (works for both single and multi-select)
+  const isOptionCorrect = (index) => {
+    if (!showResult) return false;
+    const correctAnswer = answers[currentQuestionIndex]?.correctAnswer;
+    if (Array.isArray(correctAnswer)) {
+      return correctAnswer.includes(index);
+    }
+    return correctAnswer === index;
+  };
+
+  // Helper to check if an option is incorrect (was selected but wrong)
+  const isOptionIncorrect = (index) => {
+    if (!showResult) return false;
+    const correctAnswer = answers[currentQuestionIndex]?.correctAnswer;
+    const wasSelected = questionType === 'multi-select'
+      ? Array.isArray(selectedAnswer) && selectedAnswer.includes(index)
+      : selectedAnswer === index;
+
+    if (Array.isArray(correctAnswer)) {
+      return wasSelected && !correctAnswer.includes(index);
+    }
+    return wasSelected && correctAnswer !== index;
+  };
 
   return (
     <div className="practice-container">
@@ -193,17 +278,19 @@ const Practice = () => {
         </div>
 
         <div className="question-card">
-          <h2 className="question-text">{currentQuestion.questionText}</h2>
+          <div className="question-header">
+            <h2 className="question-text">{currentQuestion.questionText}</h2>
+          </div>
 
           <div className="options-list">
             {currentQuestion.options.map((option, index) => (
               <button
                 key={index}
-                className={`option-button ${selectedAnswer === index ? 'selected' : ''} ${
+                className={`option-button ${isOptionSelected(index) ? 'selected' : ''} ${
                   showResult
-                    ? answers[currentQuestionIndex]?.correctAnswer === index
+                    ? isOptionCorrect(index)
                       ? 'correct'
-                      : selectedAnswer === index
+                      : isOptionIncorrect(index)
                       ? 'incorrect'
                       : ''
                     : ''
@@ -211,16 +298,30 @@ const Practice = () => {
                 onClick={() => !showResult && handleAnswerSelect(index)}
                 disabled={showResult}
               >
-                <span className="option-letter">{String.fromCharCode(65 + index)}</span>
+                {questionType === 'multi-select' ? (
+                  <span style={{
+                    width: '24px',
+                    height: '24px',
+                    border: '2px solid var(--border-color)',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isOptionSelected(index) ? 'var(--primary-color)' : 'transparent',
+                    flexShrink: 0
+                  }}>
+                    {isOptionSelected(index) && <FiCheckCircle color="white" size={16} />}
+                  </span>
+                ) : (
+                  <span className="option-letter">{String.fromCharCode(65 + index)}</span>
+                )}
                 <span className="option-text">{option}</span>
-                {showResult && answers[currentQuestionIndex]?.correctAnswer === index && (
+                {showResult && isOptionCorrect(index) && (
                   <FiCheckCircle className="option-icon correct-icon" />
                 )}
-                {showResult &&
-                  selectedAnswer === index &&
-                  answers[currentQuestionIndex]?.correctAnswer !== index && (
-                    <FiXCircle className="option-icon incorrect-icon" />
-                  )}
+                {showResult && isOptionIncorrect(index) && (
+                  <FiXCircle className="option-icon incorrect-icon" />
+                )}
               </button>
             ))}
           </div>
@@ -240,7 +341,11 @@ const Practice = () => {
               <button
                 onClick={handleSubmitAnswer}
                 className="btn btn-primary"
-                disabled={selectedAnswer === null}
+                disabled={
+                  selectedAnswer === null ||
+                  selectedAnswer === undefined ||
+                  (questionType === 'multi-select' && (!Array.isArray(selectedAnswer) || selectedAnswer.length === 0))
+                }
               >
                 Submit Answer
               </button>

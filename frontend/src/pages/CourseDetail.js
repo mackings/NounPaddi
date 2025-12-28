@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../utils/api';
+import { formatDate } from '../utils/dateHelper';
 import {
   FiBook,
   FiFileText,
@@ -52,14 +53,6 @@ const CourseDetail = () => {
       console.error('Error fetching course materials:', error);
       setLoading(false);
     }
-  };
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
   };
 
   if (loading) {

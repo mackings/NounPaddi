@@ -32,6 +32,8 @@ const materialSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+}, {
+  timestamps: true, // Adds createdAt and updatedAt automatically
 });
 
 module.exports = mongoose.model('Material', materialSchema);

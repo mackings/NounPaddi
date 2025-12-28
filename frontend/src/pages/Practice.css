@@ -74,10 +74,26 @@
   margin: 0 auto;
 }
 
+.question-header {
+  margin-bottom: 32px;
+}
+
 .question-text {
   font-size: 24px;
-  margin-bottom: 32px;
+  margin-bottom: 12px;
   line-height: 1.5;
+}
+
+.question-hint {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: rgba(37, 99, 235, 0.1);
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  color: var(--primary-color);
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 8px;
 }
 
 .options-list {

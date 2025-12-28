@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
+import { formatDate } from '../utils/dateHelper';
 import {
   FiBook,
   FiFileText,
@@ -29,14 +30,6 @@ const StudentDashboard = () => {
       console.error('Error fetching stats:', error);
       setLoading(false);
     }
-  };
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
   };
 
   if (loading) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import { formatDate } from '../utils/dateHelper';
 import {
   FiBook,
   FiBriefcase,
@@ -43,14 +44,6 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Error fetching API usage:', error);
     }
-  };
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
   };
 
   if (loading) {
