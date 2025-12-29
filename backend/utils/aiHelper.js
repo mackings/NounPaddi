@@ -292,14 +292,30 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
 
     const prompt = `Based on the following educational content, generate 70 high-quality practice questions with a mix of different question types.
 
-Requirements:
-1. Generate 45 multiple-choice questions (4 options each)
-2. Generate 15 True/False questions (2 options: True, False)
+**CRITICAL REQUIREMENTS - RANDOMIZATION:**
+1. For multiple-choice questions: RANDOMLY distribute correct answers across ALL options (A, B, C, D)
+   - Approximately 25% of correct answers should be A
+   - Approximately 25% of correct answers should be B
+   - Approximately 25% of correct answers should be C
+   - Approximately 25% of correct answers should be D
+   - DO NOT favor option C or any single option
+2. For true/false questions: BALANCE the correct answers - aim for 50% True and 50% False
+   - DO NOT make all or most answers True
+   - Mix True and False answers evenly throughout
+
+**Question Mix:**
+1. Generate 45 multiple-choice questions (4 options each) - distribute correct answers evenly
+2. Generate 15 True/False questions (2 options: True, False) - balance True/False answers
 3. Generate 10 multi-select questions (4 options with 2 correct answers marked)
 4. Questions should test understanding of key concepts from different parts of the material
 5. Include a brief explanation for each correct answer
 6. Vary difficulty levels (easy, medium, hard) - mix them throughout
 7. Cover a wide range of topics from the material
+
+**Answer Randomization Strategy:**
+- When creating multiple-choice questions, deliberately vary which option is correct
+- Avoid patterns like "all answers are C" or "most answers are True"
+- Ensure the distribution is RANDOM and BALANCED
 
 Format each question as:
 
@@ -310,7 +326,7 @@ A) [Option A]
 B) [Option B]
 C) [Option C]
 D) [Option D]
-Correct Answer: [Letter]
+Correct Answer: [Letter] (Remember to vary - use A, B, C, and D equally!)
 Explanation: [Brief explanation]
 Difficulty: [easy/medium/hard]
 
@@ -319,7 +335,7 @@ Q[number]: [Question text]
 Type: true-false
 A) True
 B) False
-Correct Answer: [Letter]
+Correct Answer: [Letter] (Balance between A for True and B for False!)
 Explanation: [Brief explanation]
 Difficulty: [easy/medium/hard]
 
@@ -339,7 +355,7 @@ Difficulty: [easy/medium/hard]
 Educational Content:
 ${truncatedText}
 
-Generate 70 questions (45 multiple-choice, 15 true-false, 10 multi-select):`;
+Generate 70 questions (45 multiple-choice, 15 true-false, 10 multi-select) with RANDOMIZED and BALANCED correct answers:`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -406,15 +422,31 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
       {
         text: `Based on this PDF educational content, generate 70 high-quality practice questions with a mix of different question types.
 
-Requirements:
-1. Generate 45 multiple-choice questions (4 options each)
-2. Generate 15 True/False questions (2 options: True, False)
+**CRITICAL REQUIREMENTS - RANDOMIZATION:**
+1. For multiple-choice questions: RANDOMLY distribute correct answers across ALL options (A, B, C, D)
+   - Approximately 25% of correct answers should be A
+   - Approximately 25% of correct answers should be B
+   - Approximately 25% of correct answers should be C
+   - Approximately 25% of correct answers should be D
+   - DO NOT favor option C or any single option
+2. For true/false questions: BALANCE the correct answers - aim for 50% True and 50% False
+   - DO NOT make all or most answers True
+   - Mix True and False answers evenly throughout
+
+**Question Mix:**
+1. Generate 45 multiple-choice questions (4 options each) - distribute correct answers evenly
+2. Generate 15 True/False questions (2 options: True, False) - balance True/False answers
 3. Generate 10 multi-select questions (4 options with 2 correct answers marked)
 4. Questions should test understanding of key concepts from across the entire document
 5. Include a brief explanation for each correct answer
 6. Vary difficulty levels (easy, medium, hard) - distribute them evenly
 7. Cover different sections and topics from the material
 8. Ensure questions span from the beginning, middle, and end of the document
+
+**Answer Randomization Strategy:**
+- When creating multiple-choice questions, deliberately vary which option is correct
+- Avoid patterns like "all answers are C" or "most answers are True"
+- Ensure the distribution is RANDOM and BALANCED
 
 Format each question as:
 
@@ -425,7 +457,7 @@ A) [Option A]
 B) [Option B]
 C) [Option C]
 D) [Option D]
-Correct Answer: [Letter]
+Correct Answer: [Letter] (Remember to vary - use A, B, C, and D equally!)
 Explanation: [Brief explanation]
 Difficulty: [easy/medium/hard]
 
@@ -434,7 +466,7 @@ Q[number]: [Question text]
 Type: true-false
 A) True
 B) False
-Correct Answer: [Letter]
+Correct Answer: [Letter] (Balance between A for True and B for False!)
 Explanation: [Brief explanation]
 Difficulty: [easy/medium/hard]
 
@@ -451,7 +483,7 @@ Difficulty: [easy/medium/hard]
 
 ---
 
-Generate 50 questions (30 multiple-choice, 10 true-false, 10 multi-select):`
+Generate 70 questions (45 multiple-choice, 15 true-false, 10 multi-select) with RANDOMIZED and BALANCED correct answers:`
       },
     ]);
 
