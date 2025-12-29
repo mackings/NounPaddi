@@ -102,38 +102,52 @@ const Practice = () => {
 
   const submitExamResults = async () => {
     try {
+      const token = localStorage.getItem('token');
       const timeTaken = selectedDuration * 60 - (timeRemaining || 0); // Actual time taken in seconds
 
-      // Submit to leaderboard
-      await api.post('/leaderboard/submit', {
-        courseId: selectedCourse,
-        score,
-        totalQuestions: questions.length,
-        duration: selectedDuration * 60,
-        timeTaken,
-        answers: answers.map(a => ({
-          questionId: a.questionId,
-          answer: a.answer,
-          isCorrect: a.isCorrect
-        }))
-      });
+      // Only submit if user is logged in
+      if (token) {
+        await api.post('/leaderboard/submit', {
+          courseId: selectedCourse,
+          score,
+          totalQuestions: questions.length,
+          duration: selectedDuration * 60,
+          timeTaken,
+          answers: answers.map(a => ({
+            questionId: a.questionId,
+            answer: a.answer,
+            isCorrect: a.isCorrect
+          }))
+        });
+      }
 
-      // Fetch leaderboard and rank
+      // Fetch leaderboard (works for everyone)
       await fetchLeaderboard();
     } catch (error) {
       console.error('Error submitting exam results:', error);
+      // Still fetch leaderboard even if submission fails
+      await fetchLeaderboard();
     }
   };
 
   const fetchLeaderboard = async () => {
     try {
-      const [leaderboardRes, rankRes] = await Promise.all([
-        api.get(`/leaderboard/course/${selectedCourse}?limit=10`),
-        api.get(`/leaderboard/my-rank/${selectedCourse}`)
-      ]);
+      const token = localStorage.getItem('token');
 
+      // Fetch leaderboard (public endpoint)
+      const leaderboardRes = await api.get(`/leaderboard/course/${selectedCourse}?limit=10`);
       setLeaderboard(leaderboardRes.data.data);
-      setMyRank(rankRes.data.data);
+
+      // Only fetch rank if logged in
+      if (token) {
+        try {
+          const rankRes = await api.get(`/leaderboard/my-rank/${selectedCourse}`);
+          setMyRank(rankRes.data.data);
+        } catch (rankError) {
+          console.log('Could not fetch rank:', rankError);
+          setMyRank(null);
+        }
+      }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
     }

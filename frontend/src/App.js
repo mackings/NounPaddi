@@ -17,6 +17,7 @@ import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ITPlacement from './pages/ITPlacement';
+import Reminders from './pages/Reminders';
 import './App.css';
 
 // Protected Route Component
@@ -122,6 +123,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <ITPlacement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reminders"
+                  element={
+                    <ProtectedRoute>
+                      <Reminders />
                     </ProtectedRoute>
                   }
                 />
