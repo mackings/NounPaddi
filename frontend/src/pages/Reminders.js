@@ -91,25 +91,52 @@ const Reminders = () => {
   };
 
   const playObleeAndNotify = (title) => {
-    // Play Oblee by DJ YK - using public folder audio
-    // To add the audio file: Download "Oblee" by DJ YK Mule from https://mdundo.com/song/3104672
-    // and place it in frontend/public/oblee.mp3
-    const audio = new Audio('/oblee.mp3');
+    // Play notification sound - using a reliable audio source
+    // You can replace this URL with Oblee by DJ YK once you upload it to your server
+    // For now, using a notification sound as fallback
+    const audioUrl = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+    const audio = new Audio(audioUrl);
+
     audio.play().catch(err => {
-      console.log('Audio play failed - ensure oblee.mp3 is in public folder:', err);
+      console.log('Audio play failed:', err);
+      // Fallback: Use browser's built-in beep (Web Audio API)
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.2);
+      } catch (error) {
+        console.log('Fallback audio also failed:', error);
+      }
     });
 
     // Show notification
     if (Notification.permission === 'granted') {
       new Notification('📚 ' + title, {
-        body: 'Time to read! Oblee is playing to get you motivated 🎵',
+        body: 'Time to read! Your reminder is ready 🎵',
         icon: '/logo192.png',
         badge: '/logo192.png',
+        requireInteraction: true,
       });
     }
 
-    // Stop audio after 30 seconds
-    setTimeout(() => audio.pause(), 30000);
+    // Stop audio after 5 seconds
+    setTimeout(() => {
+      try {
+        audio.pause();
+      } catch (e) {
+        // Audio might not be playing
+      }
+    }, 5000);
   };
 
   const toggleReminder = async (id) => {
@@ -143,7 +170,7 @@ const Reminders = () => {
             <h1>Reading Reminders</h1>
             <p>Set up reminders to stay on track with your studies</p>
             <div className="music-note">
-              <FiMusic /> Powered by Oblee - DJ YK
+              <FiMusic /> Get notified with sound alerts
             </div>
           </div>
           <button onClick={() => setShowModal(true)} className="btn btn-primary btn-add">
@@ -197,7 +224,7 @@ const Reminders = () => {
                 </div>
 
                 <div className="reminder-footer">
-                  <FiMusic size={14} /> <span>Oblee - DJ YK will play</span>
+                  <FiMusic size={14} /> <span>Notification sound will play</span>
                 </div>
               </div>
             ))
@@ -253,7 +280,7 @@ const Reminders = () => {
 
                 <div className="reminder-info">
                   <FiMusic />
-                  <p>Oblee by DJ YK will play at the selected time to remind you to study!</p>
+                  <p>A notification sound will play at the selected time to remind you to study!</p>
                 </div>
 
                 <div className="modal-actions">
