@@ -1,12 +1,17 @@
 const Course = require('../models/Course');
 const Material = require('../models/Material');
+const { courseCache, materialCache, cacheHelper } = require('../utils/cache');
 
 // @desc    Get all courses
 // @route   GET /api/courses
 // @access  Public
 exports.getCourses = async (req, res) => {
   try {
-    const courses = await Course.find().populate('departmentId', 'name facultyId');
+    const cacheKey = 'all_courses';
+
+    const courses = await cacheHelper.getOrSet(courseCache, cacheKey, async () => {
+      return await Course.find().populate('departmentId', 'name facultyId');
+    });
 
     res.status(200).json({
       success: true,
@@ -26,8 +31,12 @@ exports.getCourses = async (req, res) => {
 // @access  Public
 exports.getCoursesByDepartment = async (req, res) => {
   try {
-    const courses = await Course.find({ departmentId: req.params.departmentId })
-      .populate('departmentId', 'name');
+    const cacheKey = `department_${req.params.departmentId}_courses`;
+
+    const courses = await cacheHelper.getOrSet(courseCache, cacheKey, async () => {
+      return await Course.find({ departmentId: req.params.departmentId })
+        .populate('departmentId', 'name');
+    });
 
     res.status(200).json({
       success: true,
@@ -76,6 +85,10 @@ exports.createCourse = async (req, res) => {
   try {
     const course = await Course.create(req.body);
 
+    // Invalidate relevant caches
+    cacheHelper.invalidate(courseCache, 'all_courses');
+    cacheHelper.invalidatePattern(courseCache, `department_${course.departmentId}_*`);
+
     res.status(201).json({
       success: true,
       data: course,
@@ -93,8 +106,12 @@ exports.createCourse = async (req, res) => {
 // @access  Public
 exports.getCourseMaterials = async (req, res) => {
   try {
-    const materials = await Material.find({ courseId: req.params.courseId })
-      .populate('uploadedBy', 'name');
+    const cacheKey = `course_${req.params.courseId}_materials`;
+
+    const materials = await cacheHelper.getOrSet(materialCache, cacheKey, async () => {
+      return await Material.find({ courseId: req.params.courseId })
+        .populate('uploadedBy', 'name');
+    });
 
     res.status(200).json({
       success: true,
@@ -114,8 +131,12 @@ exports.getCourseMaterials = async (req, res) => {
 // @access  Public
 exports.getCourse = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id)
-      .populate('departmentId', 'name code');
+    const cacheKey = `course_${req.params.id}`;
+
+    const course = await cacheHelper.getOrSet(courseCache, cacheKey, async () => {
+      return await Course.findById(req.params.id)
+        .populate('departmentId', 'name code');
+    });
 
     if (!course) {
       return res.status(404).json({
@@ -161,6 +182,11 @@ exports.deleteCourse = async (req, res) => {
     }
 
     await course.deleteOne();
+
+    // Invalidate relevant caches
+    cacheHelper.invalidate(courseCache, 'all_courses');
+    cacheHelper.invalidate(courseCache, `course_${req.params.id}`);
+    cacheHelper.invalidatePattern(courseCache, `department_${course.departmentId}_*`);
 
     res.status(200).json({
       success: true,

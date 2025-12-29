@@ -63,19 +63,55 @@ async function summarizeText(text, pdfUrl = null, materialId = null, userId = nu
     console.log(`Processing ${cleanedText.length} characters...`);
 
     // Create a detailed prompt for educational content
-    const prompt = `You are an expert educational content summarizer. Please provide a comprehensive summary of the following course material.
+    const prompt = `You are an expert educational content summarizer. Please provide a comprehensive, well-formatted summary of the following course material.
 
-Requirements:
-1. Create a detailed summary that captures all key concepts and topics
+**CRITICAL FORMATTING REQUIREMENTS:**
+
+1. **Module Headers:** Format as **Module X: Module Title** (bold, with "Module" capitalized)
+2. **Unit Headers:** Format as **Unit X: Unit Title** (bold, with "Unit" capitalized)
+3. **Section Headers:** Use ### for main sections within units
+4. **Key Terms:** Bold important terms like **Coaxial Cable:**, **LAN:**, **TCP/IP:**, etc.
+
+**Content Structure:**
+- Start each module/unit with its bold header on its own line
+- Follow with a brief introductory paragraph explaining the main topic
+- Use bullet points (•) ONLY for lists of related items or characteristics
+- Use numbered lists for steps or sequences
+- Write detailed explanations in paragraph form, not as bullet points
+- Indent sub-bullets properly when showing hierarchical information
+
+**Bullet Point Usage:**
+- Use bullets for listing types, components, or characteristics
+- Format: **Term Name:** Description with details
+- Example:
+  **Types of Network Cables:**
+  • **Twisted Pair Cable:** Used in telephone networks and LANs. Consists of pairs of insulated copper wires twisted together. Speeds of 10 Mbps to 1 Gbps.
+  • **Coaxial Cable:** Used for cable TV and LANs. Consists of copper wire with insulating layer and conductive shield. Speeds from 200-500 Mbps.
+
+- For sub-categories, indent properly:
+  **Wireless Technologies:**
+  • **Terrestrial Microwave:** Uses Earth-based transmitters for line-of-sight communication
+  • **Cellular Systems:** Uses radio communication divided into geographic cells
+    - Low-power transmitters in each cell
+    - Seamless handoff between cells
+
+**Paragraph Usage:**
+- Use paragraphs for explanations, descriptions, and concepts
+- Example: "A Local Area Network (LAN) connects computers in a limited geographical area such as a home, school, or office building. LANs are characterized by high data transfer rates, smaller coverage range, and do not require leased telecommunication lines."
+
+**Summary Requirements:**
+1. Capture all key concepts from the material
 2. Break down complex technical terms into simpler language
-3. Organize the summary with clear sections
-4. Include important definitions and explanations
-5. Make it suitable for students studying this material
+3. Use bold formatting for ALL module headers, unit headers, and key terms
+4. Organize with clear hierarchical structure (Module → Unit → Sections)
+5. Mix paragraphs (for explanations) with bullet points (for lists) appropriately
+6. Ensure proper indentation for sub-bullets
+7. Make it highly readable and student-friendly
 
 Course Material:
 ${cleanedText}
 
-Please provide a well-structured summary:`;
+Please provide a well-structured, comprehensive summary with proper bold headers, effective use of paragraphs and bullet points:`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -142,17 +178,55 @@ async function summarizePDFDirectly(pdfUrl, materialId = null, userId = null) {
         }
       },
       {
-        text: `You are an expert educational content summarizer. Please provide a comprehensive summary of this PDF course material.
+        text: `You are an expert educational content summarizer. Please provide a comprehensive, well-formatted summary of this PDF course material.
 
-Requirements:
-1. Create a detailed summary that captures all key concepts and topics from the entire document
-2. Break down complex technical terms into simpler language that students can understand
-3. Organize the summary with clear sections and headings
-4. Include important definitions and explanations
-5. Make it suitable for students studying this material
-6. Cover content from the entire document, not just the beginning
+**CRITICAL FORMATTING REQUIREMENTS:**
 
-Please provide a well-structured, comprehensive summary:`
+1. **Module Headers:** Format as **Module X: Module Title** (bold, with "Module" capitalized)
+2. **Unit Headers:** Format as **Unit X: Unit Title** (bold, with "Unit" capitalized)
+3. **Section Headers:** Use ### for main sections within units
+4. **Key Terms:** Bold important terms like **Coaxial Cable:**, **Optical Fiber:**, **LAN:**, etc.
+
+**Content Structure:**
+- Start each module/unit with its bold header on its own line
+- Follow with a brief introductory paragraph explaining the main topic
+- Use bullet points (•) ONLY for lists of related items or characteristics
+- Use numbered lists for steps or sequences
+- Write detailed explanations in paragraph form, not as bullet points
+- Indent sub-bullets properly when showing hierarchical information
+
+**Bullet Point Usage:**
+- Use bullets for listing types, components, or characteristics
+- Format: **Term Name:** Description with details
+- Example of GOOD bullet usage:
+  **Types of Network Cables:**
+  • **Twisted Pair Cable:** Used in telephone networks and LANs. Consists of pairs of insulated copper wires twisted together. Common speeds of 10 Mbps to 1 Gbps.
+  • **Coaxial Cable:** Used for cable TV and LANs. Consists of copper wire with insulating layer and conductive shield. Speeds from 200-500 Mbps.
+  • **Optical Fiber Cable:** Transmits light through glass fibers. Not affected by electromagnetic radiation. Speeds reach trillions of bits per second (Gbps).
+
+- For sub-categories, indent with spaces:
+  **Wireless Technologies:**
+  • **Terrestrial Microwave:** Uses Earth-based transmitters for line-of-sight communication over short distances
+  • **Communications Satellites:** Uses microwave radio stationed in space to relay voice, data, and TV signals
+    - Positioned in geostationary orbit
+    - Covers large geographic areas
+  • **Cellular Systems:** Uses radio communication divided into geographic cells with low-power transmitters
+
+**Paragraph Usage:**
+- Use paragraphs for explanations, descriptions, and concepts
+- Example: "A Local Area Network (LAN) connects computers in a limited geographical area such as a home, school, or office building. LANs are characterized by high data transfer rates, smaller coverage range, and do not require leased telecommunication lines. Ethernet is the most common LAN technology, supporting speeds up to 10 Gbps."
+
+**Summary Requirements:**
+1. Capture all key concepts from the entire document
+2. Break down complex technical terms into simpler language
+3. Use bold formatting for ALL module headers, unit headers, and key terms
+4. Organize with clear hierarchical structure (Module → Unit → Sections)
+5. Mix paragraphs (for explanations) with bullet points (for lists) appropriately
+6. Ensure proper indentation for sub-bullets
+7. Make it highly readable and student-friendly
+8. Cover content from beginning, middle, and end of document
+
+Please provide a well-structured, comprehensive summary with proper bold headers, effective use of paragraphs and bullet points:`
       },
     ]);
 
@@ -216,11 +290,11 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
     // Initialize Gemini model
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    const prompt = `Based on the following educational content, generate 50 high-quality practice questions with a mix of different question types.
+    const prompt = `Based on the following educational content, generate 70 high-quality practice questions with a mix of different question types.
 
 Requirements:
-1. Generate 30 multiple-choice questions (4 options each)
-2. Generate 10 True/False questions (2 options: True, False)
+1. Generate 45 multiple-choice questions (4 options each)
+2. Generate 15 True/False questions (2 options: True, False)
 3. Generate 10 multi-select questions (4 options with 2 correct answers marked)
 4. Questions should test understanding of key concepts from different parts of the material
 5. Include a brief explanation for each correct answer
@@ -265,7 +339,7 @@ Difficulty: [easy/medium/hard]
 Educational Content:
 ${truncatedText}
 
-Generate 50 questions (30 multiple-choice, 10 true-false, 10 multi-select):`;
+Generate 70 questions (45 multiple-choice, 15 true-false, 10 multi-select):`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -330,11 +404,11 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
         }
       },
       {
-        text: `Based on this PDF educational content, generate 50 high-quality practice questions with a mix of different question types.
+        text: `Based on this PDF educational content, generate 70 high-quality practice questions with a mix of different question types.
 
 Requirements:
-1. Generate 30 multiple-choice questions (4 options each)
-2. Generate 10 True/False questions (2 options: True, False)
+1. Generate 45 multiple-choice questions (4 options each)
+2. Generate 15 True/False questions (2 options: True, False)
 3. Generate 10 multi-select questions (4 options with 2 correct answers marked)
 4. Questions should test understanding of key concepts from across the entire document
 5. Include a brief explanation for each correct answer

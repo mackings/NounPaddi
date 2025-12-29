@@ -1,12 +1,17 @@
 const Faculty = require('../models/Faculty');
 const Department = require('../models/Department');
+const { facultyCache, departmentCache, cacheHelper } = require('../utils/cache');
 
 // @desc    Get all faculties
 // @route   GET /api/faculties
 // @access  Public
 exports.getFaculties = async (req, res) => {
   try {
-    const faculties = await Faculty.find();
+    const cacheKey = 'all_faculties';
+
+    const faculties = await cacheHelper.getOrSet(facultyCache, cacheKey, async () => {
+      return await Faculty.find();
+    });
 
     res.status(200).json({
       success: true,
@@ -28,6 +33,9 @@ exports.createFaculty = async (req, res) => {
   try {
     const faculty = await Faculty.create(req.body);
 
+    // Invalidate faculty cache
+    cacheHelper.invalidate(facultyCache, 'all_faculties');
+
     res.status(201).json({
       success: true,
       data: faculty,
@@ -45,8 +53,12 @@ exports.createFaculty = async (req, res) => {
 // @access  Public
 exports.getDepartmentsByFaculty = async (req, res) => {
   try {
-    const departments = await Department.find({ facultyId: req.params.facultyId })
-      .populate('facultyId', 'name');
+    const cacheKey = `faculty_${req.params.facultyId}_departments`;
+
+    const departments = await cacheHelper.getOrSet(departmentCache, cacheKey, async () => {
+      return await Department.find({ facultyId: req.params.facultyId })
+        .populate('facultyId', 'name');
+    });
 
     res.status(200).json({
       success: true,

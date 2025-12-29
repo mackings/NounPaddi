@@ -3,6 +3,7 @@ const Summary = require('../models/Summary');
 const Question = require('../models/Question');
 const { summarizeText, generateQuestions, formatQuestionsToMCQ } = require('../utils/aiHelper');
 const crypto = require('crypto');
+const { materialCache, questionCache, cacheHelper } = require('../utils/cache');
 
 // @desc    Upload course material
 // @route   POST /api/materials/upload
@@ -49,6 +50,9 @@ exports.uploadMaterial = async (req, res) => {
     });
 
     console.log('Material created successfully:', material);
+
+    // Invalidate materials cache for this course
+    cacheHelper.invalidatePattern(materialCache, `course_${courseId}_*`);
 
     res.status(201).json({
       success: true,
@@ -153,7 +157,11 @@ exports.generateQuestionsForMaterial = async (req, res) => {
 // @access  Public
 exports.getMaterialSummary = async (req, res) => {
   try {
-    const summary = await Summary.findOne({ materialId: req.params.materialId });
+    const cacheKey = `material_${req.params.materialId}_summary`;
+
+    const summary = await cacheHelper.getOrSet(materialCache, cacheKey, async () => {
+      return await Summary.findOne({ materialId: req.params.materialId });
+    });
 
     if (!summary) {
       return res.status(404).json({
@@ -188,7 +196,13 @@ exports.deleteMaterial = async (req, res) => {
       });
     }
 
+    const courseId = material.courseId;
+    const materialId = material._id;
     await material.deleteOne();
+
+    // Invalidate relevant caches
+    cacheHelper.invalidatePattern(materialCache, `course_${courseId}_*`);
+    cacheHelper.invalidate(materialCache, `material_${materialId}_summary`);
 
     res.status(200).json({
       success: true,
@@ -207,21 +221,25 @@ exports.deleteMaterial = async (req, res) => {
 // @access  Public
 exports.getCourseMaterials = async (req, res) => {
   try {
-    const materials = await Material.find({ courseId: req.params.courseId })
-      .sort({ createdAt: -1 })
-      .populate('uploadedBy', 'name');
+    const cacheKey = `course_${req.params.courseId}_materials`;
 
-    // For each material, get its summary if available
-    const materialsWithSummaries = await Promise.all(
-      materials.map(async (material) => {
-        const summary = await Summary.findOne({ materialId: material._id });
-        return {
-          ...material.toObject(),
-          hasSummary: !!summary,
-          summary: summary ? summary.summaryText : null,
-        };
-      })
-    );
+    const materialsWithSummaries = await cacheHelper.getOrSet(materialCache, cacheKey, async () => {
+      const materials = await Material.find({ courseId: req.params.courseId })
+        .sort({ createdAt: -1 })
+        .populate('uploadedBy', 'name');
+
+      // For each material, get its summary if available
+      return await Promise.all(
+        materials.map(async (material) => {
+          const summary = await Summary.findOne({ materialId: material._id });
+          return {
+            ...material.toObject(),
+            hasSummary: !!summary,
+            summary: summary ? summary.summaryText : null,
+          };
+        })
+      );
+    });
 
     res.status(200).json({
       success: true,
@@ -343,6 +361,9 @@ exports.studentUploadMaterial = async (req, res) => {
 
     console.log('Material created successfully:', material);
 
+    // Invalidate materials cache for this course
+    cacheHelper.invalidatePattern(materialCache, `course_${courseId}_*`);
+
     // Auto-generate summary and questions in background
     generateSummaryAndQuestions(material._id, req.user._id).catch(err => {
       console.error('Background processing error:', err);
@@ -417,6 +438,11 @@ async function generateSummaryAndQuestions(materialId, userId) {
     material.contributorPoints = 10; // Award points for successful upload
 
     await material.save();
+
+    // Invalidate caches after successful generation
+    cacheHelper.invalidatePattern(materialCache, `course_${material.courseId}_*`);
+    cacheHelper.invalidate(materialCache, `material_${materialId}_summary`);
+    cacheHelper.invalidatePattern(questionCache, `course_${material.courseId}_*`);
 
     console.log(`Processing completed for material: ${materialId}`);
   } catch (error) {

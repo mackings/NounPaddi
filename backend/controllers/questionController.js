@@ -1,26 +1,31 @@
 const Question = require('../models/Question');
+const { questionCache, cacheHelper } = require('../utils/cache');
 
 // @desc    Get questions by course
 // @route   GET /api/questions/course/:courseId
 // @access  Public
 exports.getQuestionsByCourse = async (req, res) => {
   try {
-    const questions = await Question.find({ courseId: req.params.courseId });
+    const cacheKey = `course_${req.params.courseId}_questions`;
 
-    // Send questions with answers (needed for client-side transformation)
-    const questionsFormatted = questions.map(q => ({
-      _id: q._id,
-      questionText: q.questionText,
-      questionType: q.questionType || 'multiple-choice',
-      options: q.options,
-      correctAnswer: q.correctAnswer, // Include for client-side transformation
-      difficulty: q.difficulty,
-      explanation: q.explanation,
-    }));
+    const questionsFormatted = await cacheHelper.getOrSet(questionCache, cacheKey, async () => {
+      const questions = await Question.find({ courseId: req.params.courseId });
+
+      // Send questions with answers (needed for client-side transformation)
+      return questions.map(q => ({
+        _id: q._id,
+        questionText: q.questionText,
+        questionType: q.questionType || 'multiple-choice',
+        options: q.options,
+        correctAnswer: q.correctAnswer, // Include for client-side transformation
+        difficulty: q.difficulty,
+        explanation: q.explanation,
+      }));
+    });
 
     res.status(200).json({
       success: true,
-      count: questions.length,
+      count: questionsFormatted.length,
       data: questionsFormatted,
     });
   } catch (error) {
@@ -126,6 +131,9 @@ exports.updateQuestion = async (req, res) => {
       });
     }
 
+    // Invalidate questions cache for this course
+    cacheHelper.invalidatePattern(questionCache, `course_${question.courseId}_*`);
+
     res.status(200).json({
       success: true,
       data: question,
@@ -152,7 +160,11 @@ exports.deleteQuestion = async (req, res) => {
       });
     }
 
+    const courseId = question.courseId;
     await question.deleteOne();
+
+    // Invalidate questions cache for this course
+    cacheHelper.invalidatePattern(questionCache, `course_${courseId}_*`);
 
     res.status(200).json({
       success: true,
