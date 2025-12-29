@@ -65,7 +65,6 @@ const ITPlacement = () => {
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
-  const [selectedTrack, setSelectedTrack] = useState('');
 
   const [formData, setFormData] = useState({
     fullName: user?.name || '',

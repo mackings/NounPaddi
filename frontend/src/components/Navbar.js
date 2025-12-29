@@ -56,12 +56,11 @@ const Navbar = () => {
                 >
                   {theme === 'light' ? <FiMoon size={20} /> : <FiSun size={20} />}
                 </button>
-                <div className="nav-user">
-                  <FiUser />
-                  <span>{user.name}</span>
-                </div>
+                <Link to="/profile" className="nav-user-icon" title={user.name}>
+                  <FiUser size={20} />
+                </Link>
                 <button onClick={handleLogout} className="btn btn-sm btn-secondary">
-                  <FiLogOut /> Logout
+                  <FiLogOut /> <span className="logout-text">Logout</span>
                 </button>
               </>
             ) : (
