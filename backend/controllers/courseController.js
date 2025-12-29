@@ -10,7 +10,9 @@ exports.getCourses = async (req, res) => {
     const cacheKey = 'all_courses';
 
     const courses = await cacheHelper.getOrSet(courseCache, cacheKey, async () => {
-      return await Course.find().populate('departmentId', 'name facultyId');
+      const results = await Course.find().populate('departmentId', 'name facultyId');
+      // Convert to plain objects to avoid Mongoose circular reference issues
+      return results.map(doc => doc.toObject());
     });
 
     res.status(200).json({
@@ -34,8 +36,9 @@ exports.getCoursesByDepartment = async (req, res) => {
     const cacheKey = `department_${req.params.departmentId}_courses`;
 
     const courses = await cacheHelper.getOrSet(courseCache, cacheKey, async () => {
-      return await Course.find({ departmentId: req.params.departmentId })
+      const results = await Course.find({ departmentId: req.params.departmentId })
         .populate('departmentId', 'name');
+      return results.map(doc => doc.toObject());
     });
 
     res.status(200).json({
@@ -109,8 +112,9 @@ exports.getCourseMaterials = async (req, res) => {
     const cacheKey = `course_${req.params.courseId}_materials`;
 
     const materials = await cacheHelper.getOrSet(materialCache, cacheKey, async () => {
-      return await Material.find({ courseId: req.params.courseId })
+      const results = await Material.find({ courseId: req.params.courseId })
         .populate('uploadedBy', 'name');
+      return results.map(doc => doc.toObject());
     });
 
     res.status(200).json({
@@ -134,8 +138,9 @@ exports.getCourse = async (req, res) => {
     const cacheKey = `course_${req.params.id}`;
 
     const course = await cacheHelper.getOrSet(courseCache, cacheKey, async () => {
-      return await Course.findById(req.params.id)
+      const result = await Course.findById(req.params.id)
         .populate('departmentId', 'name code');
+      return result ? result.toObject() : null;
     });
 
     if (!course) {

@@ -10,7 +10,8 @@ exports.getFaculties = async (req, res) => {
     const cacheKey = 'all_faculties';
 
     const faculties = await cacheHelper.getOrSet(facultyCache, cacheKey, async () => {
-      return await Faculty.find();
+      const results = await Faculty.find();
+      return results.map(doc => doc.toObject());
     });
 
     res.status(200).json({
@@ -56,8 +57,9 @@ exports.getDepartmentsByFaculty = async (req, res) => {
     const cacheKey = `faculty_${req.params.facultyId}_departments`;
 
     const departments = await cacheHelper.getOrSet(departmentCache, cacheKey, async () => {
-      return await Department.find({ facultyId: req.params.facultyId })
+      const results = await Department.find({ facultyId: req.params.facultyId })
         .populate('facultyId', 'name');
+      return results.map(doc => doc.toObject());
     });
 
     res.status(200).json({
