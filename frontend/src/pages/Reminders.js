@@ -7,6 +7,9 @@ const Reminders = () => {
   const [reminders, setReminders] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isRinging, setIsRinging] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState(null);
+  const [currentReminderTitle, setCurrentReminderTitle] = useState('');
   const [formData, setFormData] = useState({
     title: 'Reading Time',
     days: [],
@@ -90,30 +93,59 @@ const Reminders = () => {
     setInterval(checkAndNotify, 60000);
   };
 
+  const stopAlarm = () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+    }
+    setIsRinging(false);
+    setCurrentReminderTitle('');
+  };
+
   const playObleeAndNotify = (title) => {
+    // Set ringing state
+    setIsRinging(true);
+    setCurrentReminderTitle(title);
+
     // Play notification sound - using a reliable audio source
     // You can replace this URL with Oblee by DJ YK once you upload it to your server
-    // For now, using a notification sound as fallback
     const audioUrl = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
     const audio = new Audio(audioUrl);
+    audio.loop = true; // Loop the audio
+    setCurrentAudio(audio);
 
     audio.play().catch(err => {
       console.log('Audio play failed:', err);
-      // Fallback: Use browser's built-in beep (Web Audio API)
+      // Fallback: Create repeating beep with Web Audio API
       try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+        let beepInterval;
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        const playBeep = () => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
 
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
 
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.2);
+          oscillator.frequency.value = 800;
+          oscillator.type = 'sine';
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.3);
+        };
+
+        // Play beep every 1 second
+        playBeep();
+        beepInterval = setInterval(playBeep, 1000);
+
+        // Store interval ID for cleanup
+        setCurrentAudio({
+          pause: () => clearInterval(beepInterval),
+          currentTime: 0
+        });
       } catch (error) {
         console.log('Fallback audio also failed:', error);
       }
@@ -122,21 +154,19 @@ const Reminders = () => {
     // Show notification
     if (Notification.permission === 'granted') {
       new Notification('📚 ' + title, {
-        body: 'Time to read! Your reminder is ready 🎵',
+        body: 'Time to read! Your reminder is ringing 🎵 Click "Stop Alarm" to dismiss.',
         icon: '/logo192.png',
         badge: '/logo192.png',
         requireInteraction: true,
       });
     }
 
-    // Stop audio after 5 seconds
+    // Auto-stop alarm after 1 minute
     setTimeout(() => {
-      try {
-        audio.pause();
-      } catch (e) {
-        // Audio might not be playing
+      if (currentAudio) {
+        stopAlarm();
       }
-    }, 5000);
+    }, 60000);
   };
 
   const toggleReminder = async (id) => {
@@ -164,6 +194,20 @@ const Reminders = () => {
   return (
     <div className="reminders-container">
       <div className="container">
+        {/* Stop Alarm Button - Shows when alarm is ringing */}
+        {isRinging && (
+          <div className="alarm-overlay">
+            <div className="alarm-card">
+              <FiBell size={64} className="alarm-icon pulsing" />
+              <h2>⏰ {currentReminderTitle}</h2>
+              <p>Time to study! Your reminder is ringing.</p>
+              <button onClick={stopAlarm} className="btn btn-danger btn-lg stop-alarm-btn">
+                Stop Alarm
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="reminders-header">
           <div className="header-content">
             <FiBell size={48} className="header-icon" />

@@ -2,6 +2,102 @@
   min-height: calc(100vh - 80px);
   padding: 40px 0;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  position: relative;
+}
+
+/* Alarm Overlay */
+.alarm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.alarm-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 24px;
+  padding: 48px 40px;
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+  animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+}
+
+.alarm-icon {
+  color: white;
+  margin-bottom: 24px;
+  animation: pulsing 1s ease-in-out infinite;
+}
+
+@keyframes pulsing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.alarm-card h2 {
+  color: white;
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.alarm-card p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+  margin-bottom: 32px;
+}
+
+.stop-alarm-btn {
+  background: #ef4444 !important;
+  color: white !important;
+  border: none !important;
+  padding: 16px 48px !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.stop-alarm-btn:hover {
+  background: #dc2626 !important;
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+  }
 }
 
 .reminders-header {
