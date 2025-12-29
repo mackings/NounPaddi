@@ -39,6 +39,7 @@ const Navbar = () => {
                     <Link to="/dashboard" className="nav-link">Dashboard</Link>
                     <Link to="/explore" className="nav-link">Explore Courses</Link>
                     <Link to="/practice" className="nav-link">Practice Exam</Link>
+                    <Link to="/it-placement" className="nav-link">IT Placement</Link>
                   </>
                 )}
                 {user.role === 'admin' && (
@@ -104,6 +105,9 @@ const Navbar = () => {
                     </Link>
                     <Link to="/practice" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       Practice Exam
+                    </Link>
+                    <Link to="/it-placement" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      IT Placement
                     </Link>
                   </>
                 )}

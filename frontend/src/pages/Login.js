@@ -90,6 +90,12 @@ const Login = () => {
             </div>
           </div>
 
+          <div style={{ textAlign: 'right', marginBottom: '12px' }}>
+            <Link to="/forgot-password" style={{ color: '#667eea', fontSize: '14px', fontWeight: '600' }}>
+              Forgot Password?
+            </Link>
+          </div>
+
           <button
             type="submit"
             className={`btn btn-primary btn-block btn-lg ${loading ? 'btn-loading' : ''}`}

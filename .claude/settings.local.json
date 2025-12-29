@@ -9,7 +9,10 @@
       "Bash(node migrate-dates.js:*)",
       "Bash(node:*)",
       "Bash(curl:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(vercel:*)",
+      "Bash(pkill:*)"
     ]
   }
 }

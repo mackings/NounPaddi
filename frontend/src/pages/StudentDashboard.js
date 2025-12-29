@@ -12,7 +12,8 @@ import {
   FiUpload,
   FiX,
   FiCheckCircle,
-  FiArrowLeft
+  FiArrowLeft,
+  FiUser
 } from 'react-icons/fi';
 import './StudentDashboard.css';
 
@@ -244,6 +245,10 @@ const StudentDashboard = () => {
             <h1>My Learning Dashboard</h1>
             <p>Track your progress and explore study materials</p>
           </div>
+          <Link to="/profile" className="profile-link-button">
+            <FiUser size={18} />
+            My Profile
+          </Link>
         </div>
 
         {/* Stats Cards */}
@@ -292,91 +297,246 @@ const StudentDashboard = () => {
         </div>
 
         {/* Learning Progress */}
-        <div className="progress-section">
-          <div className="progress-card">
-            <h2>
-              <FiTrendingUp /> Learning Progress
-            </h2>
-            <div className="progress-items">
-              <div className="progress-item">
-                <div className="progress-item-header">
-                  <span>Materials with Summaries</span>
-                  <strong>{stats?.overview?.materialWithSummaries || 0}%</strong>
-                </div>
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill progress-fill-blue"
-                    style={{ width: `${stats?.overview?.materialWithSummaries || 0}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="progress-item">
-                <div className="progress-item-header">
-                  <span>Available Practice Questions</span>
-                  <strong>{stats?.overview?.totalQuestions || 0} questions</strong>
-                </div>
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill progress-fill-green"
-                    style={{ width: '100%' }}
-                  ></div>
-                </div>
+        <div className="modern-section learning-progress-section">
+          <div className="section-header">
+            <div className="section-title-group">
+              <FiTrendingUp size={24} className="section-icon" />
+              <div>
+                <h2>Learning Progress</h2>
+                <p>Track your study journey and achievements</p>
               </div>
             </div>
           </div>
 
-          {/* Recent Materials */}
-          <div className="progress-card">
-            <h2>
-              <FiClock /> Recently Added Materials
-            </h2>
-            <div className="recent-materials-list">
-              {stats?.recentMaterials && stats.recentMaterials.length > 0 ? (
-                stats.recentMaterials.map((material) => (
-                  <Link
-                    key={material._id}
-                    to={`/course/${material.courseId?._id}`}
-                    className="recent-material-item"
-                  >
-                    <div className="recent-material-icon">
-                      <FiFileText />
+          <div className="progress-cards-grid">
+            <div className="modern-progress-card card-summaries">
+              <div className="progress-card-header">
+                <div className="progress-icon-wrapper">
+                  <FiBook size={20} />
+                </div>
+                <div className="progress-stats">
+                  <span className="progress-percentage">{stats?.overview?.materialWithSummaries || 0}%</span>
+                  <span className="progress-label">Completion</span>
+                </div>
+              </div>
+              <h3>Materials with Summaries</h3>
+              <div className="modern-progress-bar">
+                <div
+                  className="modern-progress-fill fill-blue"
+                  style={{ width: `${stats?.overview?.materialWithSummaries || 0}%` }}
+                >
+                  <span className="progress-shimmer"></span>
+                </div>
+              </div>
+              <div className="progress-footer">
+                <span>{stats?.overview?.totalSummaries || 0} of {stats?.overview?.totalMaterials || 0} materials</span>
+              </div>
+            </div>
+
+            <div className="modern-progress-card card-questions">
+              <div className="progress-card-header">
+                <div className="progress-icon-wrapper">
+                  <FiGrid size={20} />
+                </div>
+                <div className="progress-stats">
+                  <span className="progress-percentage">{stats?.overview?.totalQuestions || 0}</span>
+                  <span className="progress-label">Questions</span>
+                </div>
+              </div>
+              <h3>Practice Questions Available</h3>
+              <div className="modern-progress-bar">
+                <div className="modern-progress-fill fill-green" style={{ width: '100%' }}>
+                  <span className="progress-shimmer"></span>
+                </div>
+              </div>
+              <div className="progress-footer">
+                <span>Avg {stats?.overview?.avgQuestionsPerCourse || 0} per course</span>
+              </div>
+            </div>
+
+            <div className="modern-progress-card card-courses">
+              <div className="progress-card-header">
+                <div className="progress-icon-wrapper">
+                  <FiBook size={20} />
+                </div>
+                <div className="progress-stats">
+                  <span className="progress-percentage">{stats?.overview?.totalCourses || 0}</span>
+                  <span className="progress-label">Courses</span>
+                </div>
+              </div>
+              <h3>Available Courses</h3>
+              <div className="modern-progress-bar">
+                <div className="modern-progress-fill fill-purple" style={{ width: '100%' }}>
+                  <span className="progress-shimmer"></span>
+                </div>
+              </div>
+              <div className="progress-footer">
+                <span>Ready to explore</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Materials */}
+        <div className="modern-section recent-materials-section">
+          <div className="section-header">
+            <div className="section-title-group">
+              <FiClock size={24} className="section-icon" />
+              <div>
+                <h2>Recently Added Materials</h2>
+                <p>Latest study materials uploaded to the platform</p>
+              </div>
+            </div>
+            <Link to="/explore" className="view-all-button">
+              View All
+              <FiArrowLeft style={{ transform: 'rotate(180deg)' }} />
+            </Link>
+          </div>
+
+          <div className="modern-materials-grid">
+            {stats?.recentMaterials && stats.recentMaterials.length > 0 ? (
+              stats.recentMaterials.slice(0, 6).map((material) => (
+                <Link
+                  key={material._id}
+                  to={`/course/${material.courseId?._id}`}
+                  className="modern-material-card"
+                >
+                  <div className="material-card-header">
+                    <div className="material-icon-wrapper">
+                      <FiFileText size={24} />
                     </div>
-                    <div className="recent-material-content">
-                      <h4>{material.title}</h4>
-                      <p>{material.courseId?.courseCode} - {material.courseId?.courseName}</p>
-                      <span className="recent-material-date">
-                        <FiClock size={12} />
+                    <span className="material-badge">New</span>
+                  </div>
+                  <div className="material-card-content">
+                    <h3>{material.title}</h3>
+                    <p className="material-course">
+                      {material.courseId?.courseCode} - {material.courseId?.courseName}
+                    </p>
+                    <div className="material-card-footer">
+                      <span className="material-date">
+                        <FiClock size={14} />
                         {formatDate(material.createdAt)}
                       </span>
+                      {material.hasSummary && (
+                        <span className="material-tag summary-tag">
+                          <FiBook size={12} />
+                          Summary
+                        </span>
+                      )}
+                      {material.hasQuestions && (
+                        <span className="material-tag questions-tag">
+                          <FiGrid size={12} />
+                          Questions
+                        </span>
+                      )}
                     </div>
-                  </Link>
-                ))
-              ) : (
-                <p className="empty-message">No materials available yet</p>
-              )}
-            </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="empty-state">
+                <FiFileText size={48} />
+                <h3>No materials available yet</h3>
+                <p>Be the first to upload study materials!</p>
+                <button onClick={() => setShowUploadModal(true)} className="empty-state-button">
+                  <FiUpload size={18} />
+                  Upload Material
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Upload Stats */}
         {uploadStats && uploadStats.totalUploads > 0 && (
-          <div className="upload-stats-section">
-            <h2><FiAward /> My Contributions</h2>
-            <div className="upload-stats-grid">
-              <div className="upload-stat">
-                <h3>{uploadStats.totalUploads}</h3>
-                <p>Materials Uploaded</p>
+          <div className="contributions-section">
+            <div className="contributions-header">
+              <div className="contributions-title">
+                <FiAward size={28} className="contributions-icon" />
+                <div>
+                  <h2>My Contributions</h2>
+                  <p>Thank you for contributing to the community!</p>
+                </div>
               </div>
-              <div className="upload-stat">
-                <h3>{uploadStats.totalPoints}</h3>
-                <p>Points Earned</p>
-              </div>
-              <div className="upload-stat">
-                <h3>{uploadStats.completed}</h3>
-                <p>Processed</p>
+              <div className="contribution-badge">
+                <FiTrendingUp size={16} />
+                <span>Active Contributor</span>
               </div>
             </div>
+
+            <div className="contributions-grid">
+              <div className="contribution-card card-materials">
+                <div className="contribution-icon-wrapper">
+                  <FiFileText size={24} />
+                </div>
+                <div className="contribution-content">
+                  <h3>{uploadStats.totalUploads}</h3>
+                  <p>Materials Uploaded</p>
+                  <div className="contribution-progress">
+                    <div className="progress-bar">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${Math.min((uploadStats.totalUploads / 10) * 100, 100)}%` }}
+                      ></div>
+                    </div>
+                    <span className="progress-label">
+                      {uploadStats.totalUploads >= 10 ? 'Goal reached!' : `${10 - uploadStats.totalUploads} more to unlock Bronze Badge`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="contribution-card card-points">
+                <div className="contribution-icon-wrapper">
+                  <FiAward size={24} />
+                </div>
+                <div className="contribution-content">
+                  <h3>{uploadStats.totalPoints}</h3>
+                  <p>Points Earned</p>
+                  <div className="points-breakdown">
+                    <span className="points-rate">+10 pts per upload</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="contribution-card card-processed">
+                <div className="contribution-icon-wrapper">
+                  <FiCheckCircle size={24} />
+                </div>
+                <div className="contribution-content">
+                  <h3>{uploadStats.completed}</h3>
+                  <p>Processed Successfully</p>
+                  <div className="success-rate">
+                    <span className="rate-badge">
+                      {uploadStats.totalUploads > 0
+                        ? `${Math.round((uploadStats.completed / uploadStats.totalUploads) * 100)}% success rate`
+                        : '0% success rate'
+                      }
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="contribution-card card-pending">
+                <div className="contribution-icon-wrapper">
+                  <FiClock size={24} />
+                </div>
+                <div className="contribution-content">
+                  <h3>{uploadStats.pending || 0}</h3>
+                  <p>Processing</p>
+                  <div className="pending-info">
+                    <span className="pending-label">Auto-generating content...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {uploadStats.totalUploads >= 10 && (
+              <div className="achievement-notification">
+                <FiAward size={20} />
+                <span>Congratulations! You've unlocked the Bronze Contributor badge!</span>
+              </div>
+            )}
           </div>
         )}
 

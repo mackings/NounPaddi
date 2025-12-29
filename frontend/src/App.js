@@ -12,6 +12,10 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminMaterials from './pages/AdminMaterials';
 import StudentDashboard from './pages/StudentDashboard';
 import CourseDetail from './pages/CourseDetail';
+import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import ITPlacement from './pages/ITPlacement';
 import './App.css';
 
 // Protected Route Component
@@ -67,6 +71,8 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Student Routes */}
               <Route
@@ -98,6 +104,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Practice />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/it-placement"
+                element={
+                  <ProtectedRoute>
+                    <ITPlacement />
                   </ProtectedRoute>
                 }
               />

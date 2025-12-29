@@ -8,6 +8,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Storage for course materials (PDFs, docs)
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -24,4 +25,21 @@ const upload = multer({
   }
 });
 
-module.exports = { cloudinary, upload };
+// Storage for profile images
+const profileImageStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'nounpaddi-profile-images',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [{ width: 500, height: 500, crop: 'limit' }],
+  },
+});
+
+const profileImageUpload = multer({
+  storage: profileImageStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit for images
+  }
+});
+
+module.exports = { cloudinary, upload, profileImageUpload };

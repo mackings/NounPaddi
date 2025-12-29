@@ -15,53 +15,56 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Enable CORS
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
+// Enable CORS - Allow all Vercel deployments and localhost
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, curl, or Postman)
     if (!origin) return callback(null, true);
 
     // Allow localhost origins
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
       return callback(null, true);
     }
 
-    // Allow Vercel deployments
-    if (origin && origin.includes('vercel.app')) {
+    // Allow all Vercel deployments (*.vercel.app)
+    if (origin.includes('vercel.app')) {
+      return callback(null, true);
+    }
+
+    // Allow custom frontend URL from env
+    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
       return callback(null, true);
     }
 
     // Allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-    if (origin) {
-      const localNetworkPattern = /^http:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
-      if (localNetworkPattern.test(origin)) {
-        return callback(null, true);
-      }
+    const localNetworkPattern = /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
+    if (localNetworkPattern.test(origin)) {
+      return callback(null, true);
     }
 
-    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    const msg = 'The CORS policy for this site does not allow access from the specified Origin: ' + origin;
     return callback(new Error(msg), false);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Length', 'X-Request-Id'],
+  maxAge: 86400, // 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/user'));
 app.use('/api/faculties', require('./routes/faculty'));
 app.use('/api/departments', require('./routes/department'));
 app.use('/api/courses', require('./routes/course'));
 app.use('/api/materials', require('./routes/material'));
 app.use('/api/questions', require('./routes/question'));
 app.use('/api/stats', require('./routes/stats'));
+app.use('/api/it-placement', require('./routes/itPlacement'));
 
 // Root route
 app.get('/', (req, res) => {
