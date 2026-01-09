@@ -419,75 +419,77 @@ const ProjectSubmission = () => {
                   </div>
                 )}
 
-                <div className="form-group">
-                  <label>Project Title *</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    placeholder="Enter your project title"
-                    required
-                    disabled={uploadingPDF}
-                  />
-                </div>
+                {/* Show form fields only after PDF upload in PDF mode, or always in manual mode */}
+                {(!usePDF || (usePDF && pdfFile && !uploadingPDF)) && (
+                  <>
+                    <div className="form-group">
+                      <label>Project Title *</label>
+                      <input
+                        type="text"
+                        value={formData.title}
+                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                        placeholder="Enter your project title"
+                        required
+                      />
+                    </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Department *</label>
-                    <select
-                      value={formData.department}
-                      onChange={handleDepartmentChange}
-                      required
-                    >
-                      <option value="">Select Department</option>
-                      {departments.map(dept => (
-                        <option key={dept._id} value={dept._id}>{dept.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Department *</label>
+                        <select
+                          value={formData.department}
+                          onChange={handleDepartmentChange}
+                          required
+                        >
+                          <option value="">Select Department</option>
+                          {departments.map(dept => (
+                            <option key={dept._id} value={dept._id}>{dept.name}</option>
+                          ))}
+                        </select>
+                      </div>
 
-                  <div className="form-group">
-                    <label>Course (Optional)</label>
-                    <select
-                      value={formData.courseId}
-                      onChange={(e) => setFormData({...formData, courseId: e.target.value})}
-                      disabled={!formData.department}
-                    >
-                      <option value="">Select Course</option>
-                      {courses.map(course => (
-                        <option key={course._id} value={course._id}>
-                          {course.courseCode} - {course.courseName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                      <div className="form-group">
+                        <label>Course (Optional)</label>
+                        <select
+                          value={formData.courseId}
+                          onChange={(e) => setFormData({...formData, courseId: e.target.value})}
+                          disabled={!formData.department}
+                        >
+                          <option value="">Select Course</option>
+                          {courses.map(course => (
+                            <option key={course._id} value={course._id}>
+                              {course.courseCode} - {course.courseName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
 
-                <div className="form-group">
-                  <label>Abstract *</label>
-                  <textarea
-                    value={formData.abstract}
-                    onChange={(e) => setFormData({...formData, abstract: e.target.value})}
-                    placeholder="Enter project abstract (200-500 words)"
-                    rows="6"
-                    required
-                    disabled={uploadingPDF}
-                  />
-                  <small>{formData.abstract.length} characters</small>
-                </div>
+                    <div className="form-group">
+                      <label>Abstract *</label>
+                      <textarea
+                        value={formData.abstract}
+                        onChange={(e) => setFormData({...formData, abstract: e.target.value})}
+                        placeholder="Enter project abstract (200-500 words)"
+                        rows="6"
+                        required
+                      />
+                      <small>{formData.abstract.length} characters</small>
+                    </div>
 
-                <div className="form-group">
-                  <label>Full Project Text *</label>
-                  <textarea
-                    value={formData.fullText}
-                    onChange={(e) => setFormData({...formData, fullText: e.target.value})}
-                    placeholder="Paste your complete project text here (Introduction, Methodology, Implementation, Results, Conclusion, etc.)"
-                    rows="15"
-                    required
-                    disabled={uploadingPDF}
-                  />
-                  <small>{formData.fullText.length} characters</small>
-                </div>
+                    <div className="form-group">
+                      <label>Full Project Text *</label>
+                      <textarea
+                        value={formData.fullText}
+                        onChange={(e) => setFormData({...formData, fullText: e.target.value})}
+                        placeholder="Paste your complete project text here (Introduction, Methodology, Implementation, Results, Conclusion, etc.)"
+                        rows="15"
+                        required
+                      />
+                      <small>{formData.fullText.length} characters</small>
+                    </div>
+                  </>
+                )}
 
                 <div className="info-box">
                   <FiAlertTriangle />
