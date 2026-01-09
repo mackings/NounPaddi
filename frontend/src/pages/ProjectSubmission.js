@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { FiUpload, FiCheckCircle, FiAlertTriangle, FiXCircle, FiLoader, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiUpload, FiCheckCircle, FiAlertTriangle, FiXCircle, FiLoader, FiTrash2, FiEye, FiEdit } from 'react-icons/fi';
 import './ProjectSubmission.css';
 
 const ProjectSubmission = () => {
@@ -12,6 +12,9 @@ const ProjectSubmission = () => {
   const [checking, setChecking] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [showReport, setShowReport] = useState(false);
+  const [uploadingPDF, setUploadingPDF] = useState(false);
+  const [pdfFile, setPdfFile] = useState(null);
+  const [usePDF, setUsePDF] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
     abstract: '',
@@ -62,6 +65,52 @@ const ProjectSubmission = () => {
     }
   };
 
+  const handlePDFUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a PDF file');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    setPdfFile(file);
+
+    try {
+      setUploadingPDF(true);
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      const response = await api.post('/projects/upload-pdf', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const { title, abstract, fullText, numPages, wordCount } = response.data.data;
+
+      setFormData(prev => ({
+        ...prev,
+        title,
+        abstract,
+        fullText,
+      }));
+
+      alert(`PDF uploaded successfully!\n\nPages: ${numPages}\nWords: ${wordCount}\n\nPlease review the extracted text and make any necessary corrections.`);
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      alert(error.response?.data?.message || 'Failed to upload PDF');
+      setPdfFile(null);
+    } finally {
+      setUploadingPDF(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -82,6 +131,9 @@ const ProjectSubmission = () => {
         department: '',
         courseId: '',
       });
+      setPdfFile(null);
+      setUploadingPDF(false);
+      setUsePDF(true);
       alert('Project created successfully! You can now check for plagiarism.');
     } catch (error) {
       console.error('Error submitting project:', error);
@@ -150,6 +202,20 @@ const ProjectSubmission = () => {
       console.error('Error deleting project:', error);
       alert(error.response?.data?.message || 'Failed to delete project');
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setPdfFile(null);
+    setUploadingPDF(false);
+    setUsePDF(true);
+    setFormData({
+      title: '',
+      abstract: '',
+      fullText: '',
+      department: '',
+      courseId: '',
+    });
   };
 
   const getStatusIcon = (status) => {
@@ -285,14 +351,74 @@ const ProjectSubmission = () => {
 
         {/* Create Project Modal */}
         {showModal && (
-          <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-overlay" onClick={handleCloseModal}>
             <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>Submit New Project</h2>
-                <button onClick={() => setShowModal(false)} className="close-btn">×</button>
+                <button onClick={handleCloseModal} className="close-btn">×</button>
               </div>
 
               <form onSubmit={handleSubmit} className="project-form">
+                {/* Upload Method Toggle */}
+                <div className="upload-toggle">
+                  <button
+                    type="button"
+                    className={`toggle-btn ${usePDF ? 'active' : ''}`}
+                    onClick={() => setUsePDF(true)}
+                  >
+                    <FiUpload size={18} /> Upload PDF
+                  </button>
+                  <button
+                    type="button"
+                    className={`toggle-btn ${!usePDF ? 'active' : ''}`}
+                    onClick={() => setUsePDF(false)}
+                  >
+                    <FiEdit size={18} /> Manual Entry
+                  </button>
+                </div>
+
+                {/* PDF Upload Section */}
+                {usePDF && (
+                  <div className="pdf-upload-section">
+                    <div className="form-group">
+                      <label>Upload Project PDF *</label>
+                      <div className="file-input-wrapper">
+                        <input
+                          type="file"
+                          id="pdf-upload"
+                          accept=".pdf"
+                          onChange={handlePDFUpload}
+                          className="file-input"
+                          disabled={uploadingPDF}
+                        />
+                        <label htmlFor="pdf-upload" className="file-input-label">
+                          <FiUpload size={24} />
+                          <span>
+                            {pdfFile ? pdfFile.name : 'Click to upload or drag PDF here'}
+                          </span>
+                          <small>Maximum file size: 10MB</small>
+                        </label>
+                      </div>
+                      {uploadingPDF && (
+                        <div className="upload-progress">
+                          <div className="spinner"></div>
+                          <span>Extracting text from PDF...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {pdfFile && !uploadingPDF && (
+                      <div className="info-box success">
+                        <FiCheckCircle />
+                        <p>
+                          <strong>PDF uploaded successfully!</strong><br />
+                          Review the extracted information below and edit if needed before submitting.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="form-group">
                   <label>Project Title *</label>
                   <input
@@ -301,6 +427,7 @@ const ProjectSubmission = () => {
                     onChange={(e) => setFormData({...formData, title: e.target.value})}
                     placeholder="Enter your project title"
                     required
+                    disabled={uploadingPDF}
                   />
                 </div>
 
@@ -344,6 +471,7 @@ const ProjectSubmission = () => {
                     placeholder="Enter project abstract (200-500 words)"
                     rows="6"
                     required
+                    disabled={uploadingPDF}
                   />
                   <small>{formData.abstract.length} characters</small>
                 </div>
@@ -356,21 +484,22 @@ const ProjectSubmission = () => {
                     placeholder="Paste your complete project text here (Introduction, Methodology, Implementation, Results, Conclusion, etc.)"
                     rows="15"
                     required
+                    disabled={uploadingPDF}
                   />
                   <small>{formData.fullText.length} characters</small>
                 </div>
 
                 <div className="info-box">
                   <FiAlertTriangle />
-                  <p><strong>Important:</strong> After submission, your project will be checked for plagiarism using AI.
+                  <p><strong>Important:</strong> {usePDF ? 'Upload your complete project PDF file. ' : ''}After submission, your project will be checked for plagiarism using AI.
                   Make sure all content is original and properly cited. Projects with 70%+ similarity will be rejected.</p>
                 </div>
 
                 <div className="modal-actions">
-                  <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
+                  <button type="button" onClick={handleCloseModal} className="btn btn-secondary">
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                  <button type="submit" className="btn btn-primary" disabled={loading || uploadingPDF}>
                     {loading ? 'Creating...' : 'Create Project'}
                   </button>
                 </div>

@@ -1,5 +1,53 @@
 const ProjectSubmission = require('../models/ProjectSubmission');
 const { checkProjectPlagiarism } = require('../utils/projectPlagiarismChecker');
+const { extractTextFromPDF, cleanPDFText, extractProjectSections } = require('../utils/pdfParser');
+
+// @desc    Upload and parse PDF project
+// @route   POST /api/projects/upload-pdf
+// @access  Private (Student)
+exports.uploadPDF = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please upload a PDF file',
+      });
+    }
+
+    // Check if file is PDF
+    if (req.file.mimetype !== 'application/pdf') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only PDF files are allowed',
+      });
+    }
+
+    // Extract text from PDF
+    const pdfData = await extractTextFromPDF(req.file.buffer);
+    const cleanedText = cleanPDFText(pdfData.text);
+
+    // Extract sections
+    const sections = extractProjectSections(cleanedText);
+
+    res.status(200).json({
+      success: true,
+      message: 'PDF parsed successfully',
+      data: {
+        title: sections.title,
+        abstract: sections.abstract,
+        fullText: cleanedText,
+        numPages: pdfData.numPages,
+        wordCount: cleanedText.split(/\s+/).length,
+      },
+    });
+  } catch (error) {
+    console.error('PDF upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to parse PDF file',
+    });
+  }
+};
 
 // @desc    Submit a final year project
 // @route   POST /api/projects/submit
