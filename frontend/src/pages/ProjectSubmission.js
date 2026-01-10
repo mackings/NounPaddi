@@ -49,6 +49,7 @@ const ProjectSubmission = () => {
   const fetchProjects = async () => {
     try {
       const response = await api.get('/projects/my-projects');
+      console.log('Fetched projects:', response.data.data);
       setProjects(response.data.data);
     } catch (error) {
       console.error('Error fetching projects:', error);

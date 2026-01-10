@@ -308,6 +308,11 @@ exports.getMyProjects = async (req, res) => {
       .populate('courseId', 'courseName courseCode')
       .sort({ createdAt: -1 });
 
+    console.log('Projects with departments:', JSON.stringify(projects.map(p => ({
+      title: p.title,
+      department: p.department
+    })), null, 2));
+
     res.status(200).json({
       success: true,
       count: projects.length,
