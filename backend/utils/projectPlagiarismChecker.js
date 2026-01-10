@@ -1,7 +1,11 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const OpenAI = require('openai');
 const ProjectSubmission = require('../models/ProjectSubmission');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 /**
  * Comprehensive plagiarism check for academic projects with web search
@@ -142,71 +146,105 @@ Respond with ONLY this JSON format:
 }
 
 /**
- * Analyze project originality using Gemini AI
+ * Analyze project originality using OpenAI GPT-4 for STRICT plagiarism detection
  */
 async function analyzeWithGemini(title, abstract, fullText) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-
-    const prompt = `You are a strict academic plagiarism detector. Analyze this final year project for originality, potential plagiarism indicators, AND AI-generated content.
+    const prompt = `You are an EXTREMELY STRICT academic plagiarism detector with ZERO TOLERANCE for any form of academic dishonesty. Analyze this final year project with MAXIMUM STRICTNESS for originality, potential plagiarism indicators, AND AI-generated content.
 
 **PROJECT TITLE:** ${title}
 
 **ABSTRACT:** ${abstract}
 
-**FULL TEXT (First 4000 chars):**
-${fullText.substring(0, 4000)}
+**FULL TEXT (First 6000 chars):**
+${fullText.substring(0, 6000)}
 
-Perform a STRICT analysis checking for:
-1. **Generic/Common Content**: Is this topic/approach widely published?
-2. **Writing Style Consistency**: Does writing style change suspiciously?
-3. **Citation Patterns**: Missing citations for complex concepts?
-4. **Technical Depth**: Does it show genuine understanding or just copy-paste?
-5. **Originality Markers**: Unique insights, methodology, or perspective?
-6. **AI-Generated Content Detection**:
-   - Repetitive sentence structures common in AI writing
-   - Overly formal or generic language typical of AI
-   - Lack of personal experiences or specific examples
-   - Perfect grammar but lacking human imperfections
-   - Generic transitions and conclusions
-   - Absence of genuine critical thinking or personal insights
-7. **Red Flags**:
-   - Sudden vocabulary changes
-   - Inconsistent formatting
-   - Overly perfect language for student level
-   - Common textbook examples without attribution
-   - AI-like writing patterns
+Perform an ULTRA-STRICT analysis. Flag ANYTHING suspicious. Check for:
 
-**Be STRICT**: Academic integrity requires high standards.
+1. **Generic/Common Content**: (BE STRICT)
+   - Is this topic done to death online?
+   - Does it follow common tutorial structures?
+   - Generic examples that appear in textbooks/online courses?
+   - Lack of novel approach or unique perspective?
 
-Respond in this EXACT JSON format:
+2. **Writing Style RED FLAGS**: (BE EXTREMELY CRITICAL)
+   - ANY sudden changes in vocabulary sophistication
+   - Inconsistent writing quality between sections
+   - Sections that sound too professional vs student-level
+   - Different formatting or citation styles
+
+3. **Citation Issues**: (ZERO TOLERANCE)
+   - Missing citations for ANY complex concepts
+   - Technical explanations without proper attribution
+   - Code snippets without source references
+   - Methodology copied from papers without citation
+
+4. **AI-Generated Content Detection**: (MAXIMUM SENSITIVITY)
+   - Repetitive sentence structures (AI hallmark)
+   - Overly formal, robotic language patterns
+   - Generic filler phrases like "In today's world", "It is important to note"
+   - Perfect grammar with no natural human imperfections
+   - Lack of personal examples, anecdotes, or struggles
+   - Generic conclusions that could apply to any topic
+   - Obvious AI transitions and connectors
+   - Surface-level analysis without deep insight
+   - Hallucination indicators (made-up statistics, fake references)
+
+5. **Plagiarism Indicators**: (BE HARSH)
+   - Common code patterns from GitHub/StackOverflow
+   - Tutorial-like step-by-step explanations
+   - Boilerplate implementations
+   - Exact matches to common project templates
+   - Suspiciously similar to online documentation
+
+6. **Technical Depth**: (QUESTION EVERYTHING)
+   - Does the student REALLY understand this?
+   - Is there evidence of actual implementation?
+   - Are there personal debugging stories or challenges?
+   - Does it show trial-and-error learning?
+
+**SCORING INSTRUCTIONS - BE HARSH:**
+- originalityScore: 0-20 for obvious copies, 21-40 for heavy AI use, 41-60 for suspicious, 61-80 for some originality, 81-100 for truly original (rare)
+- aiGeneratedLikelihood: 0-30 is human, 31-60 is AI-assisted, 61-100 is mostly/fully AI
+- Flag EVERYTHING suspicious. It's better to false-positive than miss plagiarism.
+
+Respond in this EXACT JSON format (NO MARKDOWN, JUST JSON):
 {
   "originalityScore": <0-100>,
   "verdict": "ORIGINAL|SUSPICIOUS|LIKELY_PLAGIARIZED",
   "aiGeneratedLikelihood": <0-100>,
   "aiDetectionVerdict": "HUMAN_WRITTEN|LIKELY_AI_ASSISTED|LIKELY_AI_GENERATED",
-  "aiIndicators": ["indicator1", "indicator2", ...],
-  "redFlags": ["flag1", "flag2", ...],
-  "strengths": ["strength1", "strength2", ...],
+  "aiIndicators": ["specific AI writing pattern found", "another AI indicator", ...],
+  "redFlags": ["specific plagiarism red flag", "another concern", ...],
+  "strengths": ["any genuine originality found (be stingy)", ...],
   "suspiciousPatterns": ["pattern1", "pattern2", ...],
-  "citationIssues": "description of citation problems if any",
-  "detailedAnalysis": "comprehensive explanation including AI detection findings",
+  "citationIssues": "detailed description of all citation problems",
+  "detailedAnalysis": "comprehensive harsh critique including all concerns",
   "confidence": <0-100>
 }`;
 
-    const result = await model.generateContent(prompt);
-    const response = result.response.text();
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an EXTREMELY STRICT academic plagiarism detector. Be harsh and flag everything suspicious. Academic integrity is paramount.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3, // Lower temperature for more consistent, stricter analysis
+      response_format: { type: 'json_object' }
+    });
 
-    console.log('Gemini Analysis Raw Response:', response);
+    const response = completion.choices[0].message.content;
+    console.log('OpenAI GPT-4 Analysis Raw Response:', response);
 
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsedData = JSON.parse(jsonMatch[0]);
-      console.log('Gemini Analysis Parsed Data:', JSON.stringify(parsedData, null, 2));
-      return parsedData;
-    }
-
-    throw new Error('Failed to parse Gemini analysis');
+    const parsedData = JSON.parse(response);
+    console.log('OpenAI GPT-4 Analysis Parsed Data:', JSON.stringify(parsedData, null, 2));
+    return parsedData;
   } catch (error) {
     console.error('Gemini analysis error:', error);
     return {
@@ -220,60 +258,100 @@ Respond in this EXACT JSON format:
 }
 
 /**
- * Analyze web presence and common sources
+ * Analyze web presence and common sources using OpenAI GPT-4
  */
 async function analyzeWebPresence(title, abstract, fullText) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-
-    const prompt = `You are an expert at detecting plagiarism from web sources. Analyze if this project content appears to be from common online sources.
+    const prompt = `You are an expert at detecting plagiarism from web sources with MAXIMUM STRICTNESS. Analyze if this project appears copied from online sources.
 
 **PROJECT TITLE:** ${title}
 
 **ABSTRACT:** ${abstract}
 
 **SAMPLE TEXT:**
-${fullText.substring(0, 2000)}
+${fullText.substring(0, 3000)}
 
-Based on your knowledge, identify:
-1. Does this content match known online tutorials, documentation, or repositories?
-2. Are there phrases commonly found in GitHub projects, StackOverflow, or academic papers?
-3. Does the title/topic match common online project examples?
-4. Technical patterns that suggest copying from specific sources (e.g., exact code structure from tutorials)
-5. Provide likely source URLs if you recognize specific content patterns
+BE EXTREMELY STRICT. Check for:
 
-**Be STRICT**: Flag any content that seems too generic or matches common online patterns.
+1. **GitHub Repository Patterns**:
+   - Common README structures
+   - Boilerplate project setups
+   - Tutorial-style implementations
+   - Popular framework examples
+   - Provide specific GitHub repos if you recognize the pattern
 
-Respond in this EXACT JSON format:
+2. **Tutorial/Course Content**:
+   - Udemy, Coursera, YouTube tutorial patterns
+   - FreeCodeCamp, W3Schools examples
+   - Step-by-step tutorial language
+   - Common beginner project structures
+   - Provide tutorial URLs if recognizable
+
+3. **Documentation Copies**:
+   - Official framework documentation examples
+   - Library quick-start guides
+   - API documentation samples
+   - Provide documentation URLs
+
+4. **StackOverflow/Forums**:
+   - Common solution patterns
+   - Popular answered questions
+   - Code snippets from top answers
+
+5. **Academic Sources**:
+   - Research paper methodologies
+   - Common thesis structures
+   - Published project implementations
+
+6. **Blog/Medium Articles**:
+   - Technical blog post patterns
+   - Tutorial series content
+
+**PROVIDE SPECIFIC URLs** when you recognize content patterns. Be generous with URL suggestions.
+
+**SCORING - BE HARSH:**
+- webPlagiarismScore: 0-30 unlikely copied, 31-60 possibly copied, 61-100 likely copied
+- For EACH suspicious source, provide likelihood 0-100
+
+Respond in this EXACT JSON format (NO MARKDOWN, JUST JSON):
 {
   "webPlagiarismScore": <0-100>,
   "suspiciousSources": [
     {
-      "sourceType": "GitHub|Tutorial|Documentation|Academic Paper|Blog|StackOverflow",
+      "sourceType": "GitHub|Tutorial|Documentation|Academic Paper|Blog|StackOverflow|YouTube|Course",
       "likelihood": <0-100>,
-      "reason": "why this source is suspected",
-      "indicators": ["indicator1", "indicator2"],
-      "possibleUrls": ["https://example.com if you recognize the pattern"]
+      "reason": "specific reason why this source is suspected",
+      "indicators": ["specific indicator 1", "specific indicator 2"],
+      "possibleUrls": ["https://specific-url-1.com", "https://specific-url-2.com"]
     }
   ],
-  "commonPatterns": ["pattern1", "pattern2"],
+  "commonPatterns": ["specific pattern 1", "specific pattern 2"],
   "verdict": "LIKELY_ORIGINAL|POSSIBLY_COPIED|LIKELY_COPIED",
-  "analysis": "detailed explanation"
+  "analysis": "detailed harsh explanation of all concerns"
 }`;
 
-    const result = await model.generateContent(prompt);
-    const response = result.response.text();
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert at detecting web plagiarism. Be strict and provide specific URLs when you recognize content patterns. Flag everything suspicious.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      response_format: { type: 'json_object' }
+    });
 
-    console.log('Web Presence Analysis Raw Response:', response);
+    const response = completion.choices[0].message.content;
+    console.log('OpenAI Web Presence Analysis Raw Response:', response);
 
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsedData = JSON.parse(jsonMatch[0]);
-      console.log('Web Presence Analysis Parsed Data:', JSON.stringify(parsedData, null, 2));
-      return parsedData;
-    }
-
-    throw new Error('Failed to parse web presence analysis');
+    const parsedData = JSON.parse(response);
+    console.log('OpenAI Web Presence Analysis Parsed Data:', JSON.stringify(parsedData, null, 2));
+    return parsedData;
   } catch (error) {
     console.error('Web presence analysis error:', error);
     return {
