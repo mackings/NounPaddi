@@ -6,10 +6,12 @@ const connectDB = require('./config/db');
 // Load env vars
 dotenv.config();
 
-// Connect to database
-connectDB();
-
 const app = express();
+
+// Connect to database (async, won't block server startup)
+connectDB().catch(err => {
+  console.error('Initial database connection failed:', err.message);
+});
 
 // Body parser middleware - Increase limit for large project submissions
 app.use(express.json({ limit: '50mb' }));
@@ -26,6 +28,9 @@ app.use(cors({
   preflightContinue: false,
   optionsSuccessStatus: 204
 }));
+
+// Explicit OPTIONS handler for all routes
+app.options('*', cors());
 
 
 // Routes
