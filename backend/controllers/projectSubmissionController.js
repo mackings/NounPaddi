@@ -151,8 +151,16 @@ exports.checkPlagiarism = async (req, res) => {
       detailedAnalysis: plagiarismReport.detailedAnalysis,
       webSources: plagiarismReport.webSources || [],
       databaseMatches: plagiarismReport.databaseMatches || [],
+      geminiInsights: plagiarismReport.geminiInsights || {},
+      recommendations: plagiarismReport.recommendations || [],
       checkedAt: plagiarismReport.checkedAt,
     };
+
+    console.log('Saving plagiarism report with geminiInsights:', {
+      hasGeminiInsights: !!plagiarismReport.geminiInsights,
+      aiGeneratedLikelihood: plagiarismReport.geminiInsights?.aiGeneratedLikelihood,
+      aiDetectionVerdict: plagiarismReport.geminiInsights?.aiDetectionVerdict,
+    });
 
     await project.save();
 

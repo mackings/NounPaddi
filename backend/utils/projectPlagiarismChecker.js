@@ -30,7 +30,7 @@ async function checkProjectPlagiarism(title, abstract, fullText, studentId) {
     // Step 5: Determine final verdict
     const verdict = determinePlagiarismVerdict(overallScore, databaseCheck, geminiAnalysis, webSearchAnalysis);
 
-    return {
+    const finalReport = {
       overallScore,
       status: verdict.status,
       verdict: verdict.message,
@@ -41,6 +41,19 @@ async function checkProjectPlagiarism(title, abstract, fullText, studentId) {
       recommendations: verdict.recommendations,
       checkedAt: new Date(),
     };
+
+    console.log('Final Plagiarism Report:', JSON.stringify({
+      overallScore: finalReport.overallScore,
+      status: finalReport.status,
+      hasGeminiInsights: !!finalReport.geminiInsights,
+      geminiInsightsKeys: finalReport.geminiInsights ? Object.keys(finalReport.geminiInsights) : [],
+      hasWebSources: !!finalReport.webSources,
+      webSourcesCount: finalReport.webSources?.length || 0,
+      aiGeneratedLikelihood: finalReport.geminiInsights?.aiGeneratedLikelihood,
+      aiDetectionVerdict: finalReport.geminiInsights?.aiDetectionVerdict,
+    }, null, 2));
+
+    return finalReport;
   } catch (error) {
     console.error('Plagiarism check error:', error);
     throw new Error(`Failed to complete plagiarism check: ${error.message}`);
@@ -184,9 +197,13 @@ Respond in this EXACT JSON format:
     const result = await model.generateContent(prompt);
     const response = result.response.text();
 
+    console.log('Gemini Analysis Raw Response:', response);
+
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsedData = JSON.parse(jsonMatch[0]);
+      console.log('Gemini Analysis Parsed Data:', JSON.stringify(parsedData, null, 2));
+      return parsedData;
     }
 
     throw new Error('Failed to parse Gemini analysis');
@@ -247,9 +264,13 @@ Respond in this EXACT JSON format:
     const result = await model.generateContent(prompt);
     const response = result.response.text();
 
+    console.log('Web Presence Analysis Raw Response:', response);
+
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsedData = JSON.parse(jsonMatch[0]);
+      console.log('Web Presence Analysis Parsed Data:', JSON.stringify(parsedData, null, 2));
+      return parsedData;
     }
 
     throw new Error('Failed to parse web presence analysis');
