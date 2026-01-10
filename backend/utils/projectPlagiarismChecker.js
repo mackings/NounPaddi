@@ -319,6 +319,132 @@ function performRuleBasedAnalysis(title, abstract, fullText) {
 }
 
 /**
+ * NEW: Detect the academic domain/field of the project
+ * This prevents false positives (e.g., flagging COVID-19 business papers with tech patterns)
+ */
+function detectProjectDomain(title, abstract, fullText) {
+  const text = `${title} ${abstract} ${fullText}`.toLowerCase();
+  const titleAndAbstract = `${title} ${abstract}`.toLowerCase();
+
+  // Define domain indicators with weights
+  const domains = {
+    'Computer Science': {
+      keywords: [
+        'software', 'application', 'web', 'app', 'mobile', 'frontend', 'backend',
+        'database', 'api', 'framework', 'javascript', 'python', 'java', 'react',
+        'node', 'django', 'flask', 'mongodb', 'sql', 'programming', 'code',
+        'algorithm', 'data structure', 'machine learning', 'ai', 'neural network',
+        'cloud', 'server', 'deployment', 'git', 'authentication', 'encryption'
+      ],
+      weight: 0
+    },
+    'Engineering': {
+      keywords: [
+        'design', 'prototype', 'circuit', 'mechanical', 'electrical', 'hardware',
+        'sensor', 'iot', 'embedded', 'microcontroller', 'arduino', 'raspberry pi',
+        'cad', 'simulation', 'manufacturing', 'robotics', 'automation'
+      ],
+      weight: 0
+    },
+    'Business': {
+      keywords: [
+        'business', 'marketing', 'strategy', 'swot', 'analysis', 'market',
+        'customer', 'sales', 'revenue', 'profit', 'financial', 'investment',
+        'entrepreneurship', 'startup', 'commerce', 'trade', 'economy',
+        'management', 'organization', 'corporate', 'brand', 'competition'
+      ],
+      weight: 0
+    },
+    'Economics': {
+      keywords: [
+        'economics', 'economic', 'fiscal', 'monetary', 'inflation', 'gdp',
+        'supply chain', 'demand', 'microeconomics', 'macroeconomics', 'policy'
+      ],
+      weight: 0
+    },
+    'Medicine': {
+      keywords: [
+        'patient', 'disease', 'treatment', 'diagnosis', 'medical', 'clinical',
+        'hospital', 'healthcare', 'therapy', 'surgery', 'medication', 'drug',
+        'symptom', 'virus', 'bacteria', 'infection', 'epidemic', 'pandemic'
+      ],
+      weight: 0
+    },
+    'Health Sciences': {
+      keywords: [
+        'health', 'wellness', 'nutrition', 'fitness', 'public health',
+        'mental health', 'preventive care', 'hygiene', 'sanitation'
+      ],
+      weight: 0
+    },
+    'Nursing': {
+      keywords: [
+        'nursing', 'nurse', 'patient care', 'ward', 'bedside', 'caregiver'
+      ],
+      weight: 0
+    },
+    'Education': {
+      keywords: [
+        'teaching', 'learning', 'curriculum', 'pedagogy', 'student', 'classroom',
+        'education', 'school', 'academic', 'instructor', 'lesson', 'assessment'
+      ],
+      weight: 0
+    },
+    'Social Sciences': {
+      keywords: [
+        'social', 'society', 'culture', 'community', 'behavior', 'psychology',
+        'sociology', 'anthropology', 'survey', 'questionnaire', 'interview'
+      ],
+      weight: 0
+    },
+    'Political Science': {
+      keywords: [
+        'politics', 'government', 'governance', 'democracy', 'policy',
+        'legislation', 'constitution', 'election', 'vote', 'political'
+      ],
+      weight: 0
+    }
+  };
+
+  // Count keyword occurrences for each domain
+  Object.keys(domains).forEach(domain => {
+    domains[domain].keywords.forEach(keyword => {
+      // Give more weight to keywords in title/abstract
+      const titleMatches = (titleAndAbstract.match(new RegExp(`\\b${keyword}\\b`, 'g')) || []).length;
+      const textMatches = (text.match(new RegExp(`\\b${keyword}\\b`, 'g')) || []).length;
+
+      domains[domain].weight += (titleMatches * 3) + textMatches;
+    });
+  });
+
+  // Find domain with highest weight
+  let topDomain = 'General';
+  let topWeight = 0;
+  let secondWeight = 0;
+
+  Object.entries(domains).forEach(([domain, data]) => {
+    if (data.weight > topWeight) {
+      secondWeight = topWeight;
+      topWeight = data.weight;
+      topDomain = domain;
+    } else if (data.weight > secondWeight) {
+      secondWeight = data.weight;
+    }
+  });
+
+  // Calculate confidence based on separation from second-place
+  const confidence = topWeight > 0 ?
+    Math.min(95, Math.round((topWeight / (topWeight + secondWeight + 1)) * 100)) : 0;
+
+  // Require minimum weight and confidence to assign a domain
+  if (topWeight < 3 || confidence < 40) {
+    return { domain: 'General', confidence: 30, weight: topWeight };
+  }
+
+  return { domain: topDomain, confidence, weight: topWeight };
+}
+
+/**
  * ENHANCED: Analyze web presence with specific URL detection (rule-based, completely free)
  */
 async function analyzeWebPresence(title, abstract, fullText) {
@@ -328,6 +454,23 @@ async function analyzeWebPresence(title, abstract, fullText) {
     const suspiciousSources = [];
     const commonPatterns = [];
     const text = `${title} ${abstract} ${fullText}`.toLowerCase();
+
+    // STEP 1: DETECT PROJECT DOMAIN FIRST - This prevents false positives
+    const projectDomain = detectProjectDomain(title, abstract, fullText);
+    console.log(`Detected project domain: ${projectDomain.domain} (confidence: ${projectDomain.confidence}%)`);
+
+    // Only apply tech checks if it's actually a CS/Engineering project
+    const isTechProject = projectDomain.domain === 'Computer Science' ||
+                          projectDomain.domain === 'Engineering';
+
+    // Only apply business checks if it's actually a Business project
+    const isBusinessProject = projectDomain.domain === 'Business' ||
+                             projectDomain.domain === 'Economics';
+
+    // Only apply medical checks if it's actually a Medical/Health project
+    const isMedicalProject = projectDomain.domain === 'Medicine' ||
+                            projectDomain.domain === 'Health Sciences' ||
+                            projectDomain.domain === 'Nursing';
 
     // EXPANDED: Framework-specific patterns with exact URLs
     const frameworkPatterns = [
@@ -426,30 +569,34 @@ async function analyzeWebPresence(title, abstract, fullText) {
       }
     ];
 
-    // Check each framework pattern - ONLY if ALL keywords are present
-    frameworkPatterns.forEach(pattern => {
-      const matchCount = pattern.keywords.filter(keyword => text.includes(keyword)).length;
-      // Require ALL keywords to be present (not just all-but-one)
-      if (matchCount === pattern.keywords.length) {
-        // Additional check: ensure keywords appear multiple times or in meaningful context
-        const keywordDensity = pattern.keywords.reduce((sum, keyword) => {
-          const count = (text.match(new RegExp(keyword, 'g')) || []).length;
-          return sum + count;
-        }, 0);
+    // Check each framework pattern - ONLY if this is a tech project
+    if (isTechProject) {
+      frameworkPatterns.forEach(pattern => {
+        const matchCount = pattern.keywords.filter(keyword => text.includes(keyword)).length;
+        // Require ALL keywords to be present (not just all-but-one)
+        if (matchCount === pattern.keywords.length) {
+          // Additional check: ensure keywords appear multiple times or in meaningful context
+          const keywordDensity = pattern.keywords.reduce((sum, keyword) => {
+            const count = (text.match(new RegExp(keyword, 'g')) || []).length;
+            return sum + count;
+          }, 0);
 
-        // Only flag if keywords appear at least 3 times combined
-        if (keywordDensity >= 3) {
-          suspiciousSources.push({
-            sourceType: pattern.type,
-            likelihood: pattern.likelihood,
-            reason: pattern.reason,
-            indicators: pattern.keywords.map(k => `Contains "${k}"`),
-            possibleUrls: pattern.urls
-          });
-          commonPatterns.push(pattern.keywords.join(' + '));
+          // Only flag if keywords appear at least 3 times combined
+          if (keywordDensity >= 3) {
+            suspiciousSources.push({
+              sourceType: pattern.type,
+              likelihood: pattern.likelihood,
+              reason: pattern.reason,
+              indicators: pattern.keywords.map(k => `Contains "${k}"`),
+              possibleUrls: pattern.urls
+            });
+            commonPatterns.push(pattern.keywords.join(' + '));
+          }
         }
-      }
-    });
+      });
+    } else {
+      console.log(`⏭️  Skipping tech pattern checks - project is ${projectDomain.domain}, not CS/Engineering`);
+    }
 
     // EXPANDED: Generic project types (TECH)
     const genericProjects = {
@@ -709,23 +856,27 @@ async function analyzeWebPresence(title, abstract, fullText) {
       }
     };
 
-    // Check generic projects - only if mentioned multiple times or in title
-    Object.keys(genericProjects).forEach(topic => {
-      const occurrences = (text.match(new RegExp(topic.replace(/\s+/g, '\\s+'), 'gi')) || []).length;
-      const inTitle = title.toLowerCase().includes(topic);
+    // Check generic TECH projects - only if it's a tech project
+    if (isTechProject) {
+      Object.keys(genericProjects).forEach(topic => {
+        const occurrences = (text.match(new RegExp(topic.replace(/\s+/g, '\\s+'), 'gi')) || []).length;
+        const inTitle = title.toLowerCase().includes(topic);
 
-      // Only flag if appears 2+ times in text OR appears in title
-      if (occurrences >= 2 || inTitle) {
-        suspiciousSources.push({
-          sourceType: 'Common Project',
-          likelihood: genericProjects[topic].likelihood,
-          reason: `"${topic}" is an extremely common tutorial project`,
-          indicators: [`Generic ${topic} detected ${occurrences} time(s)`],
-          possibleUrls: genericProjects[topic].urls
-        });
-        commonPatterns.push(topic);
-      }
-    });
+        // Only flag if appears 2+ times in text OR appears in title
+        if (occurrences >= 2 || inTitle) {
+          suspiciousSources.push({
+            sourceType: 'Common Project',
+            likelihood: genericProjects[topic].likelihood,
+            reason: `"${topic}" is an extremely common tutorial project`,
+            indicators: [`Generic ${topic} detected ${occurrences} time(s)`],
+            possibleUrls: genericProjects[topic].urls
+          });
+          commonPatterns.push(topic);
+        }
+      });
+    } else {
+      console.log(`⏭️  Skipping generic tech project checks - project is ${projectDomain.domain}, not CS/Engineering`);
+    }
 
     // Check academic/non-technical topics - only if it's a main focus
     Object.keys(academicTopics).forEach(topic => {
@@ -758,24 +909,29 @@ async function analyzeWebPresence(title, abstract, fullText) {
         url: 'https://www.npmjs.com/package/jsonwebtoken', likelihood: 70 }
     ];
 
-    codePatterns.forEach(pattern => {
-      const codeOccurrences = (text.match(new RegExp(pattern.code.toLowerCase().replace(/[()]/g, '\\$&'), 'g')) || []).length;
+    // Check code patterns - ONLY for tech projects
+    if (isTechProject) {
+      codePatterns.forEach(pattern => {
+        const codeOccurrences = (text.match(new RegExp(pattern.code.toLowerCase().replace(/[()]/g, '\\$&'), 'g')) || []).length;
 
-      // Only flag if code pattern appears 2+ times (indicates it's actually used, not just mentioned)
-      if (codeOccurrences >= 2) {
-        // Only add if not already flagged
-        const exists = suspiciousSources.find(s => s.possibleUrls && s.possibleUrls.includes(pattern.url));
-        if (!exists) {
-          suspiciousSources.push({
-            sourceType: 'Documentation',
-            likelihood: pattern.likelihood,
-            reason: `Code matches ${pattern.platform} documentation examples`,
-            indicators: [`Contains "${pattern.code}" (${codeOccurrences} times)`],
-            possibleUrls: [pattern.url]
-          });
+        // Only flag if code pattern appears 2+ times (indicates it's actually used, not just mentioned)
+        if (codeOccurrences >= 2) {
+          // Only add if not already flagged
+          const exists = suspiciousSources.find(s => s.possibleUrls && s.possibleUrls.includes(pattern.url));
+          if (!exists) {
+            suspiciousSources.push({
+              sourceType: 'Documentation',
+              likelihood: pattern.likelihood,
+              reason: `Code matches ${pattern.platform} documentation examples`,
+              indicators: [`Contains "${pattern.code}" (${codeOccurrences} times)`],
+              possibleUrls: [pattern.url]
+            });
+          }
         }
-      }
-    });
+      });
+    } else {
+      console.log(`⏭️  Skipping code pattern checks - project is ${projectDomain.domain}, not CS/Engineering`);
+    }
 
     // NEW: DEEP CONTENT ANALYSIS - Extract unique phrases and generate Google search URLs
     const deepAnalysis = performDeepContentAnalysis(title, abstract, fullText);
