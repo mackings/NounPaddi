@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
 
+// Disable buffering to get immediate connection errors
+mongoose.set('bufferCommands', false);
+mongoose.set('bufferTimeoutMS', 30000); // Increase buffer timeout to 30s
+
 // Cache the database connection for serverless
 let cachedDb = null;
 
