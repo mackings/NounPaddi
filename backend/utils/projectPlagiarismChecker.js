@@ -441,7 +441,7 @@ async function analyzeWebPresence(title, abstract, fullText) {
       }
     });
 
-    // EXPANDED: Generic project types
+    // EXPANDED: Generic project types (TECH)
     const genericProjects = {
       'library management system': {
         urls: [
@@ -503,6 +503,202 @@ async function analyzeWebPresence(title, abstract, fullText) {
       }
     };
 
+    // NEW: Non-technical academic topics (Business, Education, Politics, etc.)
+    const academicTopics = {
+      // BUSINESS TOPICS
+      'marketing strategy': {
+        urls: [
+          'https://www.google.com/search?q=marketing+strategy+research+paper',
+          'https://scholar.google.com/scholar?q=marketing+strategy',
+          'https://www.scribd.com/search?query=marketing%20strategy',
+          'https://www.researchgate.net/search/publication?q=marketing%20strategy'
+        ],
+        likelihood: 75
+      },
+      'business plan': {
+        urls: [
+          'https://www.google.com/search?q=business+plan+sample+pdf',
+          'https://www.entrepreneur.com/businessplan',
+          'https://articles.bplans.com/',
+          'https://www.score.org/resource/business-plan-template'
+        ],
+        likelihood: 80
+      },
+      'swot analysis': {
+        urls: [
+          'https://www.google.com/search?q=swot+analysis+example',
+          'https://www.investopedia.com/terms/s/swot.asp',
+          'https://www.scribd.com/search?query=swot%20analysis'
+        ],
+        likelihood: 85
+      },
+      'supply chain': {
+        urls: [
+          'https://scholar.google.com/scholar?q=supply+chain+management',
+          'https://www.google.com/search?q=supply+chain+management+case+study',
+          'https://www.researchgate.net/search/publication?q=supply%20chain'
+        ],
+        likelihood: 70
+      },
+      'financial analysis': {
+        urls: [
+          'https://www.google.com/search?q=financial+analysis+project',
+          'https://www.investopedia.com/financial-analysis',
+          'https://www.scribd.com/search?query=financial%20analysis'
+        ],
+        likelihood: 75
+      },
+
+      // EDUCATION TOPICS
+      'teaching method': {
+        urls: [
+          'https://scholar.google.com/scholar?q=teaching+methods+education',
+          'https://www.google.com/search?q=teaching+methodology+research',
+          'https://www.edutopia.org/article/teaching-strategies',
+          'https://www.researchgate.net/search/publication?q=teaching%20methods'
+        ],
+        likelihood: 70
+      },
+      'curriculum development': {
+        urls: [
+          'https://scholar.google.com/scholar?q=curriculum+development',
+          'https://www.google.com/search?q=curriculum+development+project',
+          'https://www.scribd.com/search?query=curriculum%20development'
+        ],
+        likelihood: 75
+      },
+      'learning theory': {
+        urls: [
+          'https://scholar.google.com/scholar?q=learning+theories+education',
+          'https://www.google.com/search?q=learning+theory+research',
+          'https://www.simplypsychology.org/learning-theories.html'
+        ],
+        likelihood: 80
+      },
+
+      // POLITICAL SCIENCE
+      'democracy': {
+        urls: [
+          'https://scholar.google.com/scholar?q=democracy+political+science',
+          'https://www.google.com/search?q=democracy+research+paper',
+          'https://www.britannica.com/topic/democracy',
+          'https://plato.stanford.edu/entries/democracy/'
+        ],
+        likelihood: 70
+      },
+      'governance': {
+        urls: [
+          'https://scholar.google.com/scholar?q=governance+public+administration',
+          'https://www.google.com/search?q=governance+research+paper',
+          'https://www.researchgate.net/search/publication?q=governance'
+        ],
+        likelihood: 65
+      },
+      'public policy': {
+        urls: [
+          'https://scholar.google.com/scholar?q=public+policy+analysis',
+          'https://www.google.com/search?q=public+policy+case+study',
+          'https://www.britannica.com/topic/public-policy'
+        ],
+        likelihood: 70
+      },
+
+      // PSYCHOLOGY
+      'cognitive development': {
+        urls: [
+          'https://scholar.google.com/scholar?q=cognitive+development+psychology',
+          'https://www.google.com/search?q=cognitive+development+research',
+          'https://www.simplypsychology.org/cognitive-development.html',
+          'https://www.verywellmind.com/cognitive-development'
+        ],
+        likelihood: 75
+      },
+      'mental health': {
+        urls: [
+          'https://scholar.google.com/scholar?q=mental+health+research',
+          'https://www.google.com/search?q=mental+health+study',
+          'https://www.who.int/health-topics/mental-health',
+          'https://www.nimh.nih.gov/'
+        ],
+        likelihood: 70
+      },
+
+      // SOCIOLOGY
+      'social inequality': {
+        urls: [
+          'https://scholar.google.com/scholar?q=social+inequality',
+          'https://www.google.com/search?q=social+inequality+research',
+          'https://www.britannica.com/topic/social-inequality',
+          'https://www.researchgate.net/search/publication?q=social%20inequality'
+        ],
+        likelihood: 70
+      },
+      'gender studies': {
+        urls: [
+          'https://scholar.google.com/scholar?q=gender+studies+research',
+          'https://www.google.com/search?q=gender+studies+paper',
+          'https://www.researchgate.net/search/publication?q=gender%20studies'
+        ],
+        likelihood: 75
+      },
+
+      // HEALTHCARE/NURSING
+      'patient care': {
+        urls: [
+          'https://scholar.google.com/scholar?q=patient+care+nursing',
+          'https://www.google.com/search?q=patient+care+research',
+          'https://www.nursingtimes.net/',
+          'https://pubmed.ncbi.nlm.nih.gov/?term=patient+care'
+        ],
+        likelihood: 70
+      },
+      'healthcare management': {
+        urls: [
+          'https://scholar.google.com/scholar?q=healthcare+management',
+          'https://www.google.com/search?q=healthcare+management+project',
+          'https://www.ncbi.nlm.nih.gov/pmc/'
+        ],
+        likelihood: 70
+      },
+
+      // ENVIRONMENTAL SCIENCE
+      'climate change': {
+        urls: [
+          'https://scholar.google.com/scholar?q=climate+change+research',
+          'https://www.google.com/search?q=climate+change+study',
+          'https://www.ipcc.ch/',
+          'https://climate.nasa.gov/'
+        ],
+        likelihood: 75
+      },
+      'sustainability': {
+        urls: [
+          'https://scholar.google.com/scholar?q=sustainability+research',
+          'https://www.google.com/search?q=sustainability+project',
+          'https://www.un.org/sustainabledevelopment/'
+        ],
+        likelihood: 70
+      },
+
+      // LAW
+      'criminal justice': {
+        urls: [
+          'https://scholar.google.com/scholar?q=criminal+justice+system',
+          'https://www.google.com/search?q=criminal+justice+research',
+          'https://www.britannica.com/topic/criminal-justice'
+        ],
+        likelihood: 70
+      },
+      'constitutional law': {
+        urls: [
+          'https://scholar.google.com/scholar?q=constitutional+law',
+          'https://www.google.com/search?q=constitutional+law+analysis',
+          'https://www.law.cornell.edu/constitution'
+        ],
+        likelihood: 75
+      }
+    };
+
     Object.keys(genericProjects).forEach(topic => {
       if (text.includes(topic)) {
         suspiciousSources.push({
@@ -511,6 +707,20 @@ async function analyzeWebPresence(title, abstract, fullText) {
           reason: `"${topic}" is an extremely common tutorial project`,
           indicators: [`Generic ${topic} detected`],
           possibleUrls: genericProjects[topic].urls
+        });
+        commonPatterns.push(topic);
+      }
+    });
+
+    // NEW: Check academic/non-technical topics
+    Object.keys(academicTopics).forEach(topic => {
+      if (text.includes(topic)) {
+        suspiciousSources.push({
+          sourceType: 'Academic Research',
+          likelihood: academicTopics[topic].likelihood,
+          reason: `"${topic}" has extensive online research materials`,
+          indicators: [`Academic topic: ${topic}`],
+          possibleUrls: academicTopics[topic].urls
         });
         commonPatterns.push(topic);
       }
