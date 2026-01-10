@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { FiUpload, FiCheckCircle, FiAlertTriangle, FiXCircle, FiLoader, FiTrash2, FiEye, FiEdit } from 'react-icons/fi';
+import { FiUpload, FiCheckCircle, FiAlertTriangle, FiXCircle, FiLoader, FiTrash2, FiEye, FiEdit, FiExternalLink } from 'react-icons/fi';
+import CustomDialog from '../components/CustomDialog';
 import './ProjectSubmission.css';
 
 const ProjectSubmission = () => {
@@ -15,6 +16,7 @@ const ProjectSubmission = () => {
   const [uploadingPDF, setUploadingPDF] = useState(false);
   const [pdfFile, setPdfFile] = useState(null);
   const [usePDF, setUsePDF] = useState(true);
+  const [dialog, setDialog] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const [formData, setFormData] = useState({
     title: '',
     abstract: '',
@@ -22,6 +24,22 @@ const ProjectSubmission = () => {
     department: '',
     courseId: '',
   });
+
+  // Helper function to show custom dialogs
+  const showDialog = (title, message, type = 'info', onConfirm = null, showCancel = false) => {
+    setDialog({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm,
+      showCancel
+    });
+  };
+
+  const closeDialog = () => {
+    setDialog({ ...dialog, isOpen: false });
+  };
 
   useEffect(() => {
     fetchProjects();
@@ -70,12 +88,12 @@ const ProjectSubmission = () => {
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-      alert('Please upload a PDF file');
+      showDialog('Invalid File Type', 'Please upload a PDF file', 'error');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB
-      alert('File size must be less than 10MB');
+      showDialog('File Too Large', 'File size must be less than 10MB', 'error');
       return;
     }
 
@@ -101,10 +119,14 @@ const ProjectSubmission = () => {
         fullText,
       }));
 
-      alert(`PDF uploaded successfully!\n\nPages: ${numPages}\nWords: ${wordCount}\n\nPlease review the extracted text and make any necessary corrections.`);
+      showDialog(
+        'PDF Uploaded Successfully!',
+        `Your PDF has been processed:\n\nPages: ${numPages}\nWords: ${wordCount}\n\nPlease review the extracted text below and make any necessary corrections before submitting.`,
+        'success'
+      );
     } catch (error) {
       console.error('PDF upload error:', error);
-      alert(error.response?.data?.message || 'Failed to upload PDF');
+      showDialog('Upload Failed', error.response?.data?.message || 'Failed to upload PDF', 'error');
       setPdfFile(null);
     } finally {
       setUploadingPDF(false);
@@ -115,7 +137,7 @@ const ProjectSubmission = () => {
     e.preventDefault();
 
     if (!formData.title || !formData.abstract || !formData.fullText || !formData.department) {
-      alert('Please fill in all required fields');
+      showDialog('Missing Information', 'Please fill in all required fields', 'warning');
       return;
     }
 
@@ -134,33 +156,45 @@ const ProjectSubmission = () => {
       setPdfFile(null);
       setUploadingPDF(false);
       setUsePDF(true);
-      alert('Project created successfully! You can now check for plagiarism.');
+      showDialog(
+        'Project Created!',
+        'Your project has been created successfully. You can now check it for plagiarism before final submission.',
+        'success'
+      );
     } catch (error) {
       console.error('Error submitting project:', error);
-      alert(error.response?.data?.message || 'Failed to create project');
+      showDialog('Submission Failed', error.response?.data?.message || 'Failed to create project', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleCheckPlagiarism = async (projectId) => {
-    if (!window.confirm('This will check your project for plagiarism. This process takes 30-60 seconds. Continue?')) {
-      return;
-    }
+    showDialog(
+      'Start Plagiarism Check?',
+      'This will check your project for plagiarism using AI. The process takes 30-60 seconds and includes:\n\n• Database comparison with other submissions\n• AI content detection\n• Web source analysis\n\nContinue?',
+      'confirm',
+      async () => {
+        try {
+          setChecking(true);
+          const response = await api.post(`/projects/${projectId}/check-plagiarism`);
+          await fetchProjects();
 
-    try {
-      setChecking(true);
-      const response = await api.post(`/projects/${projectId}/check-plagiarism`);
-      await fetchProjects();
-
-      const report = response.data.data.plagiarismReport;
-      alert(`Plagiarism Check Complete!\n\nScore: ${report.overallScore}%\nStatus: ${report.status}\n\n${report.verdict}`);
-    } catch (error) {
-      console.error('Error checking plagiarism:', error);
-      alert(error.response?.data?.message || 'Failed to check plagiarism');
-    } finally {
-      setChecking(false);
-    }
+          const report = response.data.data.plagiarismReport;
+          showDialog(
+            'Plagiarism Check Complete!',
+            `Overall Score: ${report.overallScore}%\nStatus: ${report.status}\n\n${report.verdict}`,
+            report.status === 'ORIGINAL' ? 'success' : report.status === 'PLAGIARIZED' ? 'error' : 'warning'
+          );
+        } catch (error) {
+          console.error('Error checking plagiarism:', error);
+          showDialog('Check Failed', error.response?.data?.message || 'Failed to check plagiarism', 'error');
+        } finally {
+          setChecking(false);
+        }
+      },
+      true
+    );
   };
 
   const handleViewReport = async (projectId) => {
@@ -170,38 +204,46 @@ const ProjectSubmission = () => {
       setShowReport(true);
     } catch (error) {
       console.error('Error fetching report:', error);
-      alert('Failed to fetch plagiarism report');
+      showDialog('Error', 'Failed to fetch plagiarism report', 'error');
     }
   };
 
   const handleFinalizeSubmission = async (projectId) => {
-    if (!window.confirm('Are you sure you want to submit this project for final review? You cannot edit it after submission.')) {
-      return;
-    }
-
-    try {
-      await api.put(`/projects/${projectId}/finalize`);
-      await fetchProjects();
-      alert('Project submitted successfully for review!');
-    } catch (error) {
-      console.error('Error finalizing submission:', error);
-      alert(error.response?.data?.message || 'Failed to submit project');
-    }
+    showDialog(
+      'Submit for Final Review?',
+      'Are you sure you want to submit this project for final review?\n\nYou will NOT be able to edit it after submission.',
+      'confirm',
+      async () => {
+        try {
+          await api.put(`/projects/${projectId}/finalize`);
+          await fetchProjects();
+          showDialog('Submitted!', 'Your project has been submitted successfully for review.', 'success');
+        } catch (error) {
+          console.error('Error finalizing submission:', error);
+          showDialog('Submission Failed', error.response?.data?.message || 'Failed to submit project', 'error');
+        }
+      },
+      true
+    );
   };
 
   const handleDeleteProject = async (projectId) => {
-    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await api.delete(`/projects/${projectId}`);
-      await fetchProjects();
-      alert('Project deleted successfully');
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      alert(error.response?.data?.message || 'Failed to delete project');
-    }
+    showDialog(
+      'Delete Project?',
+      'Are you sure you want to delete this project?\n\nThis action cannot be undone.',
+      'error',
+      async () => {
+        try {
+          await api.delete(`/projects/${projectId}`);
+          await fetchProjects();
+          showDialog('Deleted', 'Project deleted successfully', 'success');
+        } catch (error) {
+          console.error('Error deleting project:', error);
+          showDialog('Delete Failed', error.response?.data?.message || 'Failed to delete project', 'error');
+        }
+      },
+      true
+    );
   };
 
   const handleCloseModal = () => {
@@ -542,6 +584,39 @@ const ProjectSubmission = () => {
                   <p>{selectedProject.plagiarismReport.detailedAnalysis}</p>
                 </div>
 
+                {/* AI Content Detection Section */}
+                {selectedProject.plagiarismReport.geminiInsights && (
+                  <div className="report-section ai-detection">
+                    <h4>🤖 AI Content Detection</h4>
+                    <div className="ai-detection-score">
+                      <div className="ai-score-bar">
+                        <div
+                          className="ai-score-fill"
+                          style={{
+                            width: `${selectedProject.plagiarismReport.geminiInsights.aiGeneratedLikelihood || 0}%`,
+                            background: selectedProject.plagiarismReport.geminiInsights.aiGeneratedLikelihood > 70 ? '#ef4444' :
+                                       selectedProject.plagiarismReport.geminiInsights.aiGeneratedLikelihood > 40 ? '#f59e0b' : '#10b981'
+                          }}
+                        ></div>
+                      </div>
+                      <p className="ai-verdict">
+                        <strong>Verdict:</strong> {selectedProject.plagiarismReport.geminiInsights.aiDetectionVerdict || 'Not Available'}
+                        {' '}({selectedProject.plagiarismReport.geminiInsights.aiGeneratedLikelihood || 0}% AI likelihood)
+                      </p>
+                    </div>
+                    {selectedProject.plagiarismReport.geminiInsights.aiIndicators?.length > 0 && (
+                      <div className="ai-indicators">
+                        <strong>AI Writing Indicators:</strong>
+                        <ul>
+                          {selectedProject.plagiarismReport.geminiInsights.aiIndicators.map((indicator, i) => (
+                            <li key={i}>{indicator}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {selectedProject.plagiarismReport.databaseMatches?.length > 0 && (
                   <div className="report-section">
                     <h4>Similar Projects Found ({selectedProject.plagiarismReport.databaseMatches.length})</h4>
@@ -569,7 +644,7 @@ const ProjectSubmission = () => {
 
                 {selectedProject.plagiarismReport.webSources?.length > 0 && (
                   <div className="report-section">
-                    <h4>Potential Web Sources ({selectedProject.plagiarismReport.webSources.length})</h4>
+                    <h4>🌐 Potential Web Sources ({selectedProject.plagiarismReport.webSources.length})</h4>
                     {selectedProject.plagiarismReport.webSources.map((source, index) => (
                       <div key={index} className="source-item">
                         <div className="source-header">
@@ -577,6 +652,20 @@ const ProjectSubmission = () => {
                           <span className="likelihood-badge">{source.likelihood}% Likelihood</span>
                         </div>
                         <p>{source.reason}</p>
+                        {source.possibleUrls && source.possibleUrls.length > 0 && (
+                          <div className="source-urls">
+                            <strong>Possible Sources:</strong>
+                            <ul>
+                              {source.possibleUrls.map((url, i) => (
+                                <li key={i}>
+                                  <a href={url} target="_blank" rel="noopener noreferrer" className="source-link">
+                                    {url} <FiExternalLink size={14} />
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                         {source.indicators && source.indicators.length > 0 && (
                           <div className="indicators">
                             <strong>Indicators:</strong>
@@ -601,6 +690,17 @@ const ProjectSubmission = () => {
             </div>
           </div>
         )}
+
+        {/* Custom Dialog */}
+        <CustomDialog
+          isOpen={dialog.isOpen}
+          onClose={closeDialog}
+          onConfirm={dialog.onConfirm}
+          title={dialog.title}
+          message={dialog.message}
+          type={dialog.type}
+          showCancel={dialog.showCancel}
+        />
       </div>
     </div>
   );

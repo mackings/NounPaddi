@@ -135,7 +135,7 @@ async function analyzeWithGemini(title, abstract, fullText) {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
-    const prompt = `You are a strict academic plagiarism detector. Analyze this final year project for originality and potential plagiarism indicators.
+    const prompt = `You are a strict academic plagiarism detector. Analyze this final year project for originality, potential plagiarism indicators, AND AI-generated content.
 
 **PROJECT TITLE:** ${title}
 
@@ -150,11 +150,19 @@ Perform a STRICT analysis checking for:
 3. **Citation Patterns**: Missing citations for complex concepts?
 4. **Technical Depth**: Does it show genuine understanding or just copy-paste?
 5. **Originality Markers**: Unique insights, methodology, or perspective?
-6. **Red Flags**:
+6. **AI-Generated Content Detection**:
+   - Repetitive sentence structures common in AI writing
+   - Overly formal or generic language typical of AI
+   - Lack of personal experiences or specific examples
+   - Perfect grammar but lacking human imperfections
+   - Generic transitions and conclusions
+   - Absence of genuine critical thinking or personal insights
+7. **Red Flags**:
    - Sudden vocabulary changes
    - Inconsistent formatting
    - Overly perfect language for student level
    - Common textbook examples without attribution
+   - AI-like writing patterns
 
 **Be STRICT**: Academic integrity requires high standards.
 
@@ -162,11 +170,14 @@ Respond in this EXACT JSON format:
 {
   "originalityScore": <0-100>,
   "verdict": "ORIGINAL|SUSPICIOUS|LIKELY_PLAGIARIZED",
+  "aiGeneratedLikelihood": <0-100>,
+  "aiDetectionVerdict": "HUMAN_WRITTEN|LIKELY_AI_ASSISTED|LIKELY_AI_GENERATED",
+  "aiIndicators": ["indicator1", "indicator2", ...],
   "redFlags": ["flag1", "flag2", ...],
   "strengths": ["strength1", "strength2", ...],
   "suspiciousPatterns": ["pattern1", "pattern2", ...],
   "citationIssues": "description of citation problems if any",
-  "detailedAnalysis": "comprehensive explanation",
+  "detailedAnalysis": "comprehensive explanation including AI detection findings",
   "confidence": <0-100>
 }`;
 
@@ -212,6 +223,7 @@ Based on your knowledge, identify:
 2. Are there phrases commonly found in GitHub projects, StackOverflow, or academic papers?
 3. Does the title/topic match common online project examples?
 4. Technical patterns that suggest copying from specific sources (e.g., exact code structure from tutorials)
+5. Provide likely source URLs if you recognize specific content patterns
 
 **Be STRICT**: Flag any content that seems too generic or matches common online patterns.
 
@@ -220,10 +232,11 @@ Respond in this EXACT JSON format:
   "webPlagiarismScore": <0-100>,
   "suspiciousSources": [
     {
-      "sourceType": "GitHub|Tutorial|Documentation|Academic Paper|Blog",
+      "sourceType": "GitHub|Tutorial|Documentation|Academic Paper|Blog|StackOverflow",
       "likelihood": <0-100>,
       "reason": "why this source is suspected",
-      "indicators": ["indicator1", "indicator2"]
+      "indicators": ["indicator1", "indicator2"],
+      "possibleUrls": ["https://example.com if you recognize the pattern"]
     }
   ],
   "commonPatterns": ["pattern1", "pattern2"],
