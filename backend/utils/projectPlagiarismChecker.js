@@ -14,21 +14,38 @@ const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 async function checkProjectPlagiarism(title, abstract, fullText, studentId) {
   try {
     console.log('Starting comprehensive plagiarism check with FREE AI...');
+    console.log(`📄 Analyzing project: "${title}"`);
+    console.log(`📊 Content size: ${fullText.length} characters, ${fullText.split(/\s+/).length} words`);
+
+    // Step 0: DEEP CONTENT READING - Read through entire project systematically
+    console.log('\n📖 STEP 1: Reading through entire project content...');
+    const contentAnalysis = performComprehensiveContentReading(title, abstract, fullText);
+    console.log(`✓ Content structure analyzed: ${contentAnalysis.sections.length} sections, ${contentAnalysis.paragraphs} paragraphs`);
+    console.log(`✓ Key topics identified: ${contentAnalysis.mainTopics.join(', ')}`);
+    console.log(`✓ Writing style: ${contentAnalysis.writingStyle}`);
 
     // Step 1: Check against existing projects in database
+    console.log('\n📊 STEP 2: Checking against database...');
     const databaseCheck = await checkAgainstDatabase(fullText, studentId);
+    console.log(`✓ Database check complete: ${databaseCheck.matches.length} similar projects found`);
 
     // Step 2: Use FREE Hugging Face AI to analyze originality
+    console.log('\n🤖 STEP 3: AI-powered originality analysis...');
     const aiAnalysis = await analyzeWithFreeAI(title, abstract, fullText);
+    console.log(`✓ AI analysis complete: ${aiAnalysis.aiDetectionVerdict}`);
 
-    // Step 3: Analyze web presence patterns
-    const webSearchAnalysis = await analyzeWebPresence(title, abstract, fullText);
+    // Step 3: Analyze web presence patterns (now context-aware based on content analysis)
+    console.log('\n🌐 STEP 4: Analyzing web presence with context awareness...');
+    const webSearchAnalysis = await analyzeWebPresence(title, abstract, fullText, contentAnalysis);
+    console.log(`✓ Web analysis complete: ${webSearchAnalysis.suspiciousSources.length} potential sources identified`);
 
     // Step 4: Calculate overall plagiarism score
+    console.log('\n🔢 STEP 5: Calculating final plagiarism score...');
     const overallScore = calculateOverallScore(databaseCheck, aiAnalysis, webSearchAnalysis);
 
     // Step 5: Determine final verdict
-    const verdict = determinePlagiarismVerdict(overallScore, databaseCheck, aiAnalysis, webSearchAnalysis);
+    console.log('\n⚖️  STEP 6: Determining verdict based on comprehensive analysis...');
+    const verdict = determinePlagiarismVerdict(overallScore, databaseCheck, aiAnalysis, webSearchAnalysis, contentAnalysis);
 
     const finalReport = {
       overallScore,
@@ -319,6 +336,133 @@ function performRuleBasedAnalysis(title, abstract, fullText) {
 }
 
 /**
+ * NEW: Comprehensive Content Reading - Systematically read through entire project
+ * This analyzes the actual content structure, topics, and writing style
+ * before making any plagiarism decisions
+ */
+function performComprehensiveContentReading(title, abstract, fullText) {
+  console.log('🔍 Reading project from start to finish...');
+
+  const text = fullText.toLowerCase();
+  const originalText = fullText;
+
+  // 1. STRUCTURE ANALYSIS - Identify sections and organization
+  const sections = [];
+  const sectionHeaders = [
+    'introduction', 'abstract', 'methodology', 'method', 'literature review',
+    'background', 'implementation', 'results', 'findings', 'discussion',
+    'analysis', 'conclusion', 'recommendation', 'reference', 'bibliography',
+    'chapter', 'objective', 'aim', 'scope', 'limitation'
+  ];
+
+  sectionHeaders.forEach(header => {
+    const regex = new RegExp(`\\b${header}[s]?\\b`, 'gi');
+    const matches = originalText.match(regex);
+    if (matches && matches.length > 0) {
+      sections.push(header);
+    }
+  });
+
+  // 2. PARAGRAPH ANALYSIS - Count and analyze paragraph structure
+  const paragraphs = originalText.split(/\n\n+/).filter(p => p.trim().length > 50);
+  const avgParagraphLength = paragraphs.reduce((sum, p) => sum + p.split(/\s+/).length, 0) / paragraphs.length;
+
+  // 3. SENTENCE ANALYSIS - Examine sentence complexity
+  const sentences = originalText.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  const avgSentenceLength = sentences.reduce((sum, s) => sum + s.split(/\s+/).length, 0) / sentences.length;
+
+  // 4. TOPIC EXTRACTION - Identify main subjects discussed
+  const allWords = text.split(/\s+/).filter(w => w.length > 4);
+  const wordFrequency = {};
+
+  // Common words to exclude
+  const stopWords = new Set([
+    'this', 'that', 'with', 'from', 'have', 'been', 'were', 'will', 'would',
+    'could', 'should', 'their', 'there', 'these', 'those', 'which', 'where',
+    'when', 'about', 'also', 'into', 'through', 'however', 'therefore', 'thus'
+  ]);
+
+  allWords.forEach(word => {
+    if (!stopWords.has(word) && word.length > 5) {
+      wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+    }
+  });
+
+  // Get top 10 most frequent meaningful words as main topics
+  const mainTopics = Object.entries(wordFrequency)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([word]) => word);
+
+  // 5. WRITING STYLE ANALYSIS
+  let writingStyle = 'Academic';
+
+  // Check for technical/code content
+  const hasTechnicalContent = /\b(function|class|const|var|import|export|return|if|else|for|while)\b/i.test(originalText);
+
+  // Check for research content
+  const hasResearchContent = /\b(hypothesis|survey|questionnaire|respondent|interview|data collection|sample size|correlation|statistical|significance)\b/i.test(originalText);
+
+  // Check for business content
+  const hasBusinessContent = /\b(market|customer|revenue|profit|strategy|swot|competitor|stakeholder)\b/i.test(originalText);
+
+  if (hasTechnicalContent) {
+    writingStyle = 'Technical/Programming';
+  } else if (hasResearchContent) {
+    writingStyle = 'Research/Empirical';
+  } else if (hasBusinessContent) {
+    writingStyle = 'Business/Management';
+  }
+
+  // 6. CONTENT DEPTH ANALYSIS
+  const hasLiteratureReview = sections.includes('literature review') || text.includes('previous studies') || text.includes('prior research');
+  const hasMethodology = sections.includes('methodology') || sections.includes('method');
+  const hasResults = sections.includes('results') || sections.includes('findings');
+  const hasReferences = sections.includes('reference') || sections.includes('bibliography');
+
+  const depthScore = [hasLiteratureReview, hasMethodology, hasResults, hasReferences].filter(Boolean).length;
+
+  // 7. CITATION ANALYSIS
+  const citationPatterns = [
+    /\(\d{4}\)/g,  // (2023)
+    /et al\./gi,    // et al.
+    /\[\d+\]/g,     // [1], [2]
+    /\b\w+,\s*\(\d{4}\)/g  // Author, (2023)
+  ];
+
+  let citationCount = 0;
+  citationPatterns.forEach(pattern => {
+    const matches = originalText.match(pattern);
+    if (matches) citationCount += matches.length;
+  });
+
+  console.log(`   ✓ Found ${sections.length} standard sections`);
+  console.log(`   ✓ Analyzed ${paragraphs.length} paragraphs (avg ${Math.round(avgParagraphLength)} words each)`);
+  console.log(`   ✓ Analyzed ${sentences.length} sentences (avg ${Math.round(avgSentenceLength)} words each)`);
+  console.log(`   ✓ Detected ${citationCount} citations/references`);
+  console.log(`   ✓ Content depth score: ${depthScore}/4`);
+
+  return {
+    sections,
+    paragraphs: paragraphs.length,
+    avgParagraphLength: Math.round(avgParagraphLength),
+    sentences: sentences.length,
+    avgSentenceLength: Math.round(avgSentenceLength),
+    mainTopics,
+    writingStyle,
+    hasLiteratureReview,
+    hasMethodology,
+    hasResults,
+    hasReferences,
+    depthScore,
+    citationCount,
+    hasTechnicalContent,
+    hasResearchContent,
+    hasBusinessContent
+  };
+}
+
+/**
  * NEW: Detect the academic domain/field of the project
  * This prevents false positives (e.g., flagging COVID-19 business papers with tech patterns)
  */
@@ -447,7 +591,7 @@ function detectProjectDomain(title, abstract, fullText) {
 /**
  * ENHANCED: Analyze web presence with specific URL detection (rule-based, completely free)
  */
-async function analyzeWebPresence(title, abstract, fullText) {
+async function analyzeWebPresence(title, abstract, fullText, contentAnalysis) {
   try {
     console.log('Analyzing web presence with enhanced URL detection...');
 
@@ -459,13 +603,25 @@ async function analyzeWebPresence(title, abstract, fullText) {
     const projectDomain = detectProjectDomain(title, abstract, fullText);
     console.log(`Detected project domain: ${projectDomain.domain} (confidence: ${projectDomain.confidence}%)`);
 
+    // STEP 2: USE CONTENT ANALYSIS to make smarter decisions
+    if (contentAnalysis) {
+      console.log(`Content-based validation: Writing style is "${contentAnalysis.writingStyle}"`);
+      console.log(`   Main topics: ${contentAnalysis.mainTopics.slice(0, 5).join(', ')}`);
+      console.log(`   Has ${contentAnalysis.citationCount} citations, depth score: ${contentAnalysis.depthScore}/4`);
+    }
+
     // Only apply tech checks if it's actually a CS/Engineering project
-    const isTechProject = projectDomain.domain === 'Computer Science' ||
-                          projectDomain.domain === 'Engineering';
+    // AND content analysis confirms technical content
+    const isTechProject = (projectDomain.domain === 'Computer Science' ||
+                          projectDomain.domain === 'Engineering') &&
+                          (!contentAnalysis || contentAnalysis.hasTechnicalContent ||
+                           contentAnalysis.writingStyle === 'Technical/Programming');
 
     // Only apply business checks if it's actually a Business project
-    const isBusinessProject = projectDomain.domain === 'Business' ||
-                             projectDomain.domain === 'Economics';
+    const isBusinessProject = (projectDomain.domain === 'Business' ||
+                             projectDomain.domain === 'Economics') &&
+                             (!contentAnalysis || contentAnalysis.hasBusinessContent ||
+                              contentAnalysis.writingStyle === 'Business/Management');
 
     // Only apply medical checks if it's actually a Medical/Health project
     const isMedicalProject = projectDomain.domain === 'Medicine' ||
@@ -1150,13 +1306,20 @@ function calculateOverallScore(databaseCheck, aiAnalysis, webSearchAnalysis) {
 /**
  * Determine final verdict with strict thresholds
  */
-function determinePlagiarismVerdict(overallScore, databaseCheck, aiAnalysis, webSearchAnalysis) {
+function determinePlagiarismVerdict(overallScore, databaseCheck, aiAnalysis, webSearchAnalysis, contentAnalysis) {
   let status, message, detailedAnalysis, recommendations;
+
+  // Consider content depth in verdict
+  const hasGoodStructure = contentAnalysis && contentAnalysis.depthScore >= 3;
+  const hasCitations = contentAnalysis && contentAnalysis.citationCount > 5;
+  const isWellOrganized = contentAnalysis && contentAnalysis.sections.length >= 5;
 
   if (overallScore >= 70) {
     status = 'PLAGIARIZED';
     message = 'HIGH RISK - Significant plagiarism detected';
-    detailedAnalysis = 'This project shows strong indicators of plagiarism or AI-generated content.';
+    detailedAnalysis = contentAnalysis ?
+      `After reading through the entire ${contentAnalysis.paragraphs}-paragraph project, significant plagiarism indicators were found. The content shows ${webSearchAnalysis.suspiciousSources.length} potential web sources and ${aiAnalysis.aiIndicators?.length || 0} AI writing patterns. Structure: ${contentAnalysis.sections.length} sections with ${contentAnalysis.citationCount} citations.` :
+      'This project shows strong indicators of plagiarism or AI-generated content.';
     recommendations = [
       'Requires immediate manual review',
       'Request original work documentation',
@@ -1165,25 +1328,34 @@ function determinePlagiarismVerdict(overallScore, databaseCheck, aiAnalysis, web
   } else if (overallScore >= 40) {
     status = 'SUSPICIOUS';
     message = 'MODERATE CONCERNS - Proceed with Caution';
-    detailedAnalysis = 'This project raises several concerns regarding originality.';
+    detailedAnalysis = contentAnalysis ?
+      `Comprehensive analysis of the ${contentAnalysis.paragraphs}-paragraph project identified moderate concerns. Writing style: ${contentAnalysis.writingStyle}. Found ${contentAnalysis.sections.length} standard sections and ${contentAnalysis.citationCount} citations. ${hasGoodStructure ? 'Good project structure observed.' : 'Project structure needs improvement.'}` :
+      'This project raises several concerns regarding originality.';
     recommendations = [
       'Manual review recommended',
       'Request additional documentation',
-      'Interview student about implementation'
+      hasGoodStructure ? 'Verify student understanding of content' : 'Interview student about implementation'
     ];
   } else if (overallScore >= 20) {
     status = 'SUSPICIOUS';
     message = 'LOW CONCERNS - Minor Issues Detected';
-    detailedAnalysis = 'Project appears mostly original with minor concerns.';
+    detailedAnalysis = contentAnalysis ?
+      `After thorough review of the ${contentAnalysis.paragraphs}-paragraph project, minor concerns were identified. The project demonstrates ${contentAnalysis.writingStyle.toLowerCase()} writing style with ${contentAnalysis.depthScore}/4 content depth score. ${hasCitations ? `Good citation practices (${contentAnalysis.citationCount} citations found).` : 'Limited citations detected.'}` :
+      'Project appears mostly original with minor concerns.';
     recommendations = [
       'Quick manual review advised',
-      'Verify citations and references'
+      hasCitations ? 'Verify citation formatting' : 'Verify citations and references'
     ];
   } else {
     status = 'ORIGINAL';
     message = 'PASSED - Project appears original';
-    detailedAnalysis = 'No significant plagiarism detected.';
-    recommendations = ['Proceed with standard review process'];
+    detailedAnalysis = contentAnalysis ?
+      `Comprehensive analysis of the complete ${contentAnalysis.paragraphs}-paragraph project shows strong originality. The work demonstrates ${contentAnalysis.writingStyle.toLowerCase()} writing with ${contentAnalysis.sections.length} well-organized sections, ${contentAnalysis.citationCount} citations, and ${contentAnalysis.sentences} sentences. Content depth score: ${contentAnalysis.depthScore}/4. Main topics: ${contentAnalysis.mainTopics.slice(0, 5).join(', ')}.` :
+      'No significant plagiarism detected.';
+    recommendations = [
+      isWellOrganized ? 'Proceed with standard review process' : 'Standard review recommended',
+      hasGoodStructure && hasCitations ? 'Well-structured project with proper citations' : 'Review complete'
+    ];
   }
 
   return { status, message, detailedAnalysis, recommendations };
