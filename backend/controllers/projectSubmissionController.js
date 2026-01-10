@@ -56,35 +56,22 @@ exports.submitProject = async (req, res) => {
   try {
     const { title, abstract, fullText, department, courseId } = req.body;
 
-    if (!title || !abstract || !fullText || !department) {
+    // Only require title, abstract, and fullText - department and course are optional
+    if (!title || !abstract || !fullText) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide title, abstract, full text, and department',
+        message: 'Please provide title, abstract, and full text',
       });
     }
 
-    // Check if student already has a submitted project for this course
-    const existingSubmission = await ProjectSubmission.findOne({
-      studentId: req.user._id,
-      courseId: courseId || null,
-      submissionStatus: { $in: ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED'] },
-    });
-
-    if (existingSubmission) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already submitted a project for this course',
-      });
-    }
-
-    // Create initial project submission
+    // Create initial project submission (department and courseId are optional)
     const project = await ProjectSubmission.create({
       studentId: req.user._id,
       title,
       abstract,
       fullText,
-      department,
-      courseId,
+      department: department || null,
+      courseId: courseId || null,
       submissionStatus: 'DRAFT',
       plagiarismReport: {
         status: 'PENDING',

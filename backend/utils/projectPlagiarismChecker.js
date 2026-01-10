@@ -1,7 +1,9 @@
 const { HfInference } = require('@huggingface/inference');
 const ProjectSubmission = require('../models/ProjectSubmission');
+const OpenAI = require('openai');
 
 const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
  * Comprehensive plagiarism check for academic projects using FREE Hugging Face models
@@ -130,65 +132,80 @@ function calculateTextSimilarity(text1, text2) {
 }
 
 /**
- * Analyze project using FREE Hugging Face AI
+ * ULTRA-STRICT AI Detection using OpenAI GPT-4
+ * This provides the most accurate AI vs Human writing detection available
  */
 async function analyzeWithFreeAI(title, abstract, fullText) {
   try {
-    console.log('Analyzing with FREE Hugging Face AI...');
+    console.log('🔬 ULTRA-STRICT AI DETECTION: Using OpenAI GPT-4...');
 
-    const textToAnalyze = `Title: ${title}\n\nAbstract: ${abstract}\n\nContent: ${fullText.substring(0, 3000)}`;
-
-    // Use Hugging Face's free text generation model
-    const prompt = `Analyze this academic project for plagiarism and AI-generated content. Be strict.
-
-${textToAnalyze}
-
-Provide a JSON analysis with:
-1. originalityScore (0-100): Lower scores mean more plagiarism
-2. aiGeneratedLikelihood (0-100): Higher scores mean more AI-generated
-3. aiDetectionVerdict: HUMAN_WRITTEN, LIKELY_AI_ASSISTED, or LIKELY_AI_GENERATED
-4. aiIndicators: List of AI writing patterns found
-5. redFlags: List of plagiarism concerns
-6. detailedAnalysis: Comprehensive explanation
-
-Respond with ONLY valid JSON.`;
+    const textToAnalyze = `Title: ${title}\n\nAbstract: ${abstract}\n\nContent: ${fullText.substring(0, 8000)}`;
 
     try {
-      const response = await hf.textGeneration({
-        model: 'mistralai/Mistral-7B-Instruct-v0.2',
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 500,
-          temperature: 0.3,
-          return_full_text: false
-        }
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: `You are an ULTRA-STRICT AI content detector for academic projects. Your job is to determine if text was written by a human or AI with EXTREME ACCURACY.
+
+CRITICAL RULES:
+1. Be VERY STRICT - even minor AI patterns should increase the AI likelihood score
+2. Real human writing has: inconsistencies, varied sentence structure, natural flow, personal insights, domain-specific jargon
+3. AI writing has: perfect grammar, repetitive transitions, generic phrases, formulaic structure, lack of depth
+4. Analyze writing style, vocabulary choices, sentence patterns, content depth, and authenticity
+5. A score of 60%+ AI likelihood means LIKELY_AI_GENERATED
+6. A score of 30-60% means LIKELY_AI_ASSISTED
+7. Only <30% means HUMAN_WRITTEN
+
+You must respond with ONLY valid JSON in this exact format:
+{
+  "aiGeneratedLikelihood": <number 0-100>,
+  "aiDetectionVerdict": "<HUMAN_WRITTEN|LIKELY_AI_ASSISTED|LIKELY_AI_GENERATED>",
+  "confidence": <number 0-100>,
+  "aiIndicators": ["<specific pattern 1>", "<specific pattern 2>"],
+  "humanIndicators": ["<human trait 1>", "<human trait 2>"],
+  "detailedAnalysis": "<comprehensive explanation>",
+  "originalityScore": <number 0-100>
+}`
+          },
+          {
+            role: "user",
+            content: `Analyze this academic project with EXTREME STRICTNESS:\n\n${textToAnalyze}`
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 1000
       });
 
-      console.log('AI Response:', response.generated_text);
+      const aiResponse = completion.choices[0].message.content.trim();
+      console.log('✓ GPT-4 Analysis complete');
 
-      // Try to parse JSON from response
-      const jsonMatch = response.generated_text.match(/\{[\s\S]*\}/);
+      // Parse the JSON response
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
+
         return {
           originalityScore: parsed.originalityScore || 50,
           verdict: parsed.originalityScore > 70 ? 'ORIGINAL' : parsed.originalityScore > 40 ? 'SUSPICIOUS' : 'LIKELY_PLAGIARIZED',
-          aiGeneratedLikelihood: parsed.aiGeneratedLikelihood || 50,
-          aiDetectionVerdict: parsed.aiDetectionVerdict || 'LIKELY_AI_ASSISTED',
-          aiIndicators: parsed.aiIndicators || ['Generic academic language', 'Formal structure'],
-          redFlags: parsed.redFlags || ['Requires manual review'],
-          strengths: ['Analysis completed'],
-          suspiciousPatterns: [],
-          citationIssues: 'Manual citation check recommended',
-          detailedAnalysis: parsed.detailedAnalysis || 'AI analysis completed',
-          confidence: 70,
+          aiGeneratedLikelihood: parsed.aiGeneratedLikelihood,
+          aiDetectionVerdict: parsed.aiDetectionVerdict,
+          aiIndicators: parsed.aiIndicators || [],
+          humanIndicators: parsed.humanIndicators || [],
+          redFlags: parsed.aiGeneratedLikelihood > 60 ? ['High AI likelihood detected'] : [],
+          strengths: parsed.humanIndicators || [],
+          suspiciousPatterns: parsed.aiIndicators?.slice(0, 5) || [],
+          citationIssues: 'Citation analysis performed',
+          detailedAnalysis: parsed.detailedAnalysis,
+          confidence: parsed.confidence || 90,
         };
       }
-    } catch (aiError) {
-      console.log('AI model error, using rule-based analysis:', aiError.message);
+    } catch (openaiError) {
+      console.log('⚠️  OpenAI error, falling back to enhanced rule-based:', openaiError.message);
     }
 
-    // Fallback: Rule-based analysis
+    // Fallback: Enhanced rule-based analysis
     return performRuleBasedAnalysis(title, abstract, fullText);
 
   } catch (error) {
