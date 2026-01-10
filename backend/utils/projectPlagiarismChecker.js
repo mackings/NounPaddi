@@ -426,18 +426,28 @@ async function analyzeWebPresence(title, abstract, fullText) {
       }
     ];
 
-    // Check each framework pattern
+    // Check each framework pattern - ONLY if ALL keywords are present
     frameworkPatterns.forEach(pattern => {
       const matchCount = pattern.keywords.filter(keyword => text.includes(keyword)).length;
-      if (matchCount >= pattern.keywords.length - 1) { // Match if all or all-but-one keywords present
-        suspiciousSources.push({
-          sourceType: pattern.type,
-          likelihood: pattern.likelihood,
-          reason: pattern.reason,
-          indicators: pattern.keywords.map(k => `Contains "${k}"`),
-          possibleUrls: pattern.urls
-        });
-        commonPatterns.push(pattern.keywords.join(' + '));
+      // Require ALL keywords to be present (not just all-but-one)
+      if (matchCount === pattern.keywords.length) {
+        // Additional check: ensure keywords appear multiple times or in meaningful context
+        const keywordDensity = pattern.keywords.reduce((sum, keyword) => {
+          const count = (text.match(new RegExp(keyword, 'g')) || []).length;
+          return sum + count;
+        }, 0);
+
+        // Only flag if keywords appear at least 3 times combined
+        if (keywordDensity >= 3) {
+          suspiciousSources.push({
+            sourceType: pattern.type,
+            likelihood: pattern.likelihood,
+            reason: pattern.reason,
+            indicators: pattern.keywords.map(k => `Contains "${k}"`),
+            possibleUrls: pattern.urls
+          });
+          commonPatterns.push(pattern.keywords.join(' + '));
+        }
       }
     });
 
@@ -699,27 +709,37 @@ async function analyzeWebPresence(title, abstract, fullText) {
       }
     };
 
+    // Check generic projects - only if mentioned multiple times or in title
     Object.keys(genericProjects).forEach(topic => {
-      if (text.includes(topic)) {
+      const occurrences = (text.match(new RegExp(topic.replace(/\s+/g, '\\s+'), 'gi')) || []).length;
+      const inTitle = title.toLowerCase().includes(topic);
+
+      // Only flag if appears 2+ times in text OR appears in title
+      if (occurrences >= 2 || inTitle) {
         suspiciousSources.push({
           sourceType: 'Common Project',
           likelihood: genericProjects[topic].likelihood,
           reason: `"${topic}" is an extremely common tutorial project`,
-          indicators: [`Generic ${topic} detected`],
+          indicators: [`Generic ${topic} detected ${occurrences} time(s)`],
           possibleUrls: genericProjects[topic].urls
         });
         commonPatterns.push(topic);
       }
     });
 
-    // NEW: Check academic/non-technical topics
+    // Check academic/non-technical topics - only if it's a main focus
     Object.keys(academicTopics).forEach(topic => {
-      if (text.includes(topic)) {
+      const occurrences = (text.match(new RegExp(topic.replace(/\s+/g, '\\s+'), 'gi')) || []).length;
+      const inTitle = title.toLowerCase().includes(topic);
+      const inAbstract = abstract.toLowerCase().includes(topic);
+
+      // Only flag if appears 3+ times OR in title/abstract (main focus)
+      if (occurrences >= 3 || inTitle || inAbstract) {
         suspiciousSources.push({
           sourceType: 'Academic Research',
           likelihood: academicTopics[topic].likelihood,
           reason: `"${topic}" has extensive online research materials`,
-          indicators: [`Academic topic: ${topic}`],
+          indicators: [`Academic topic: ${topic} (${occurrences} mentions)`],
           possibleUrls: academicTopics[topic].urls
         });
         commonPatterns.push(topic);
@@ -739,15 +759,18 @@ async function analyzeWebPresence(title, abstract, fullText) {
     ];
 
     codePatterns.forEach(pattern => {
-      if (text.includes(pattern.code.toLowerCase())) {
+      const codeOccurrences = (text.match(new RegExp(pattern.code.toLowerCase().replace(/[()]/g, '\\$&'), 'g')) || []).length;
+
+      // Only flag if code pattern appears 2+ times (indicates it's actually used, not just mentioned)
+      if (codeOccurrences >= 2) {
         // Only add if not already flagged
-        const exists = suspiciousSources.find(s => s.possibleUrls.includes(pattern.url));
+        const exists = suspiciousSources.find(s => s.possibleUrls && s.possibleUrls.includes(pattern.url));
         if (!exists) {
           suspiciousSources.push({
             sourceType: 'Documentation',
             likelihood: pattern.likelihood,
             reason: `Code matches ${pattern.platform} documentation examples`,
-            indicators: [`Contains "${pattern.code}"`],
+            indicators: [`Contains "${pattern.code}" (${codeOccurrences} times)`],
             possibleUrls: [pattern.url]
           });
         }
