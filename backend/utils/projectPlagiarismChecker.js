@@ -181,18 +181,52 @@ Respond with ONLY valid JSON.`;
 }
 
 /**
- * Rule-based analysis as fallback (completely free, no API needed)
+ * Rule-based analysis with 50+ AI patterns (completely free, no API needed)
  */
 function performRuleBasedAnalysis(title, abstract, fullText) {
-  console.log('Using rule-based plagiarism detection...');
+  console.log('Using enhanced rule-based plagiarism detection...');
 
   const text = `${title} ${abstract} ${fullText}`.toLowerCase();
+  const originalText = `${title} ${abstract} ${fullText}`;
 
-  // AI-generated content indicators
+  // EXPANDED: 50+ AI-generated content indicators
   const aiPhrases = [
-    'in today\'s world', 'it is important to note', 'in conclusion',
-    'furthermore', 'moreover', 'thus', 'hence', 'therefore',
-    'in summary', 'to summarize', 'as mentioned above'
+    // Generic openings
+    'in today\'s world', 'in today\'s society', 'in the modern world', 'in recent years',
+    'in the digital age', 'in this day and age', 'nowadays', 'these days',
+
+    // Formal transitions
+    'it is important to note', 'it is worth noting', 'it should be noted',
+    'it is evident that', 'it is clear that', 'it can be seen that',
+
+    // AI connectors
+    'furthermore', 'moreover', 'additionally', 'in addition', 'similarly',
+    'consequently', 'thus', 'hence', 'therefore', 'accordingly',
+    'nevertheless', 'nonetheless', 'however', 'on the other hand',
+
+    // Generic conclusions
+    'in conclusion', 'in summary', 'to summarize', 'to conclude',
+    'in closing', 'to sum up', 'all in all', 'overall',
+
+    // Redundant phrases
+    'as mentioned above', 'as previously stated', 'as discussed earlier',
+    'as we have seen', 'it goes without saying', 'needless to say',
+
+    // AI filler phrases
+    'plays a crucial role', 'plays a vital role', 'is of utmost importance',
+    'is paramount', 'is essential', 'is imperative', 'is indispensable',
+
+    // Generic academic language
+    'delve into', 'plethora of', 'myriad of', 'multitude of',
+    'vast array of', 'wide range of', 'diverse set of',
+
+    // AI-style emphasis
+    'significantly impact', 'greatly enhance', 'substantially improve',
+    'remarkably', 'notably', 'particularly', 'especially',
+
+    // Robotic structures
+    'allows us to', 'enables us to', 'provides us with',
+    'offers numerous benefits', 'presents various challenges'
   ];
 
   const aiIndicators = [];
@@ -202,29 +236,71 @@ function performRuleBasedAnalysis(title, abstract, fullText) {
     const count = (text.match(new RegExp(phrase, 'g')) || []).length;
     if (count > 0) {
       aiPhraseCount += count;
-      aiIndicators.push(`Uses generic phrase "${phrase}" ${count} time(s)`);
+      aiIndicators.push(`Generic AI phrase "${phrase}" found ${count}x`);
     }
   });
+
+  // Check for repetitive sentence structures (AI hallmark)
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  const sentenceStarts = sentences.map(s => s.trim().split(' ').slice(0, 3).join(' '));
+  const duplicateStarts = sentenceStarts.filter((item, index) => sentenceStarts.indexOf(item) !== index);
+
+  if (duplicateStarts.length > 2) {
+    aiIndicators.push(`Repetitive sentence structures detected (${duplicateStarts.length} duplicates)`);
+    aiPhraseCount += duplicateStarts.length;
+  }
+
+  // Check for overly long sentences (AI tendency)
+  const longSentences = sentences.filter(s => s.split(' ').length > 40);
+  if (longSentences.length > sentences.length * 0.3) {
+    aiIndicators.push('Excessive use of long, complex sentences (AI pattern)');
+    aiPhraseCount += 2;
+  }
 
   // Plagiarism red flags
   const redFlags = [];
 
+  // Check for code platform references
   if (text.includes('github') || text.includes('stackoverflow')) {
-    redFlags.push('Contains references to code sharing platforms');
+    redFlags.push('Direct references to code sharing platforms');
   }
 
-  if (!text.includes('citation') && !text.includes('reference')) {
-    redFlags.push('Missing proper citations');
+  // Check for tutorial-style language
+  const tutorialPhrases = ['step 1', 'step 2', 'first we', 'then we', 'next we', 'finally we'];
+  const tutorialMatches = tutorialPhrases.filter(p => text.includes(p));
+  if (tutorialMatches.length > 2) {
+    redFlags.push('Tutorial-style step-by-step structure detected');
   }
 
-  const sentences = text.split(/[.!?]+/);
+  // Check for missing citations
+  const hasReferences = text.includes('citation') || text.includes('reference') ||
+                       text.includes('et al') || text.includes('bibliography');
+  if (!hasReferences && text.length > 500) {
+    redFlags.push('No citations or references found in substantial content');
+  }
+
+  // Check for boilerplate code comments
+  const boilerplatePatterns = ['todo:', 'fixme:', '// example', '// sample', 'lorem ipsum'];
+  const boilerplateMatches = boilerplatePatterns.filter(p => text.includes(p));
+  if (boilerplateMatches.length > 0) {
+    redFlags.push('Contains placeholder/boilerplate code comments');
+  }
+
+  // Content length check
   if (sentences.length < 10) {
     redFlags.push('Very short content - insufficient for thorough analysis');
   }
 
+  // Check for excessive use of passive voice (AI tendency)
+  const passiveIndicators = text.match(/\b(was|were|been|being)\s+\w+ed\b/g) || [];
+  if (passiveIndicators.length > sentences.length * 0.4) {
+    aiIndicators.push('Excessive passive voice usage (common in AI writing)');
+    aiPhraseCount += 1;
+  }
+
   // Calculate scores
-  const aiGeneratedLikelihood = Math.min(95, Math.max(20, aiPhraseCount * 10));
-  const originalityScore = Math.max(5, 100 - aiGeneratedLikelihood - (redFlags.length * 10));
+  const aiGeneratedLikelihood = Math.min(95, Math.max(15, aiPhraseCount * 8));
+  const originalityScore = Math.max(5, 100 - aiGeneratedLikelihood - (redFlags.length * 8));
 
   return {
     originalityScore,
@@ -232,74 +308,252 @@ function performRuleBasedAnalysis(title, abstract, fullText) {
     aiGeneratedLikelihood,
     aiDetectionVerdict: aiGeneratedLikelihood > 70 ? 'LIKELY_AI_GENERATED' :
                        aiGeneratedLikelihood > 40 ? 'LIKELY_AI_ASSISTED' : 'HUMAN_WRITTEN',
-    aiIndicators,
+    aiIndicators: aiIndicators.slice(0, 15), // Show top 15 indicators
     redFlags,
     strengths: originalityScore > 60 ? ['Some original content detected'] : [],
-    suspiciousPatterns: aiIndicators.slice(0, 3),
-    citationIssues: 'Citation analysis requires manual review',
-    detailedAnalysis: `Analysis based on ${sentences.length} sentences. Found ${aiPhraseCount} AI-like phrases and ${redFlags.length} concerns.`,
-    confidence: 75,
+    suspiciousPatterns: aiIndicators.slice(0, 5),
+    citationIssues: hasReferences ? 'Citations present' : 'No citations or references found',
+    detailedAnalysis: `Analyzed ${sentences.length} sentences across ${Math.round(text.length / 1000)}KB of text. Detected ${aiPhraseCount} AI writing patterns and ${redFlags.length} plagiarism concerns. Passive voice usage: ${passiveIndicators.length} instances.`,
+    confidence: 80,
   };
 }
 
 /**
- * Analyze web presence (rule-based, completely free)
+ * ENHANCED: Analyze web presence with specific URL detection (rule-based, completely free)
  */
 async function analyzeWebPresence(title, abstract, fullText) {
   try {
-    console.log('Analyzing web presence patterns...');
+    console.log('Analyzing web presence with enhanced URL detection...');
 
     const suspiciousSources = [];
     const commonPatterns = [];
     const text = `${title} ${abstract} ${fullText}`.toLowerCase();
 
-    // Check for common tutorial patterns
-    if (text.includes('react') && text.includes('node') && text.includes('e-commerce')) {
-      suspiciousSources.push({
-        sourceType: 'Tutorial',
-        likelihood: 70,
-        reason: 'Common tutorial project pattern detected',
-        indicators: ['React + Node.js e-commerce is a popular tutorial topic'],
-        possibleUrls: [
-          'https://www.youtube.com/results?search_query=react+nodejs+ecommerce+tutorial',
-          'https://github.com/search?q=react+nodejs+ecommerce'
+    // EXPANDED: Framework-specific patterns with exact URLs
+    const frameworkPatterns = [
+      // React patterns
+      { keywords: ['react', 'redux', 'e-commerce'], type: 'Tutorial', likelihood: 75,
+        reason: 'React + Redux e-commerce is extremely common in tutorials',
+        urls: [
+          'https://www.youtube.com/results?search_query=react+redux+ecommerce+tutorial',
+          'https://github.com/search?q=react-ecommerce-template',
+          'https://www.freecodecamp.org/news/search/?query=react%20ecommerce'
         ]
-      });
-      commonPatterns.push('E-commerce with React and Node.js');
-    }
+      },
+      { keywords: ['react', 'node', 'mongodb'], type: 'MERN Stack', likelihood: 80,
+        reason: 'MERN stack is one of the most common tutorial combinations',
+        urls: [
+          'https://www.youtube.com/results?search_query=mern+stack+tutorial',
+          'https://github.com/search?q=mern-stack-project',
+          'https://www.udemy.com/courses/search/?q=mern%20stack'
+        ]
+      },
+      { keywords: ['react', 'firebase'], type: 'Tutorial', likelihood: 70,
+        reason: 'React + Firebase is a popular beginner stack',
+        urls: [
+          'https://www.youtube.com/results?search_query=react+firebase+tutorial',
+          'https://firebase.google.com/docs/web/setup'
+        ]
+      },
 
-    // Check for generic project patterns
-    const genericTopics = {
-      'library management': 'https://github.com/search?q=library+management+system',
-      'student portal': 'https://github.com/search?q=student+portal',
-      'online shopping': 'https://github.com/search?q=online+shopping+system',
-      'hospital management': 'https://github.com/search?q=hospital+management',
-      'hotel booking': 'https://github.com/search?q=hotel+booking+system'
+      // Python/Django patterns
+      { keywords: ['django', 'rest', 'api'], type: 'Django Tutorial', likelihood: 75,
+        reason: 'Django REST framework is heavily documented online',
+        urls: [
+          'https://www.django-rest-framework.org/tutorial/quickstart/',
+          'https://www.youtube.com/results?search_query=django+rest+api+tutorial',
+          'https://github.com/search?q=django-rest-api-example'
+        ]
+      },
+      { keywords: ['flask', 'api'], type: 'Flask Tutorial', likelihood: 70,
+        reason: 'Flask API tutorials are widespread',
+        urls: [
+          'https://flask.palletsprojects.com/en/stable/quickstart/',
+          'https://www.youtube.com/results?search_query=flask+api+tutorial'
+        ]
+      },
+
+      // Mobile development
+      { keywords: ['react native', 'mobile'], type: 'Mobile Tutorial', likelihood: 75,
+        reason: 'React Native has extensive tutorial coverage',
+        urls: [
+          'https://reactnative.dev/docs/getting-started',
+          'https://www.youtube.com/results?search_query=react+native+tutorial',
+          'https://github.com/search?q=react-native-example'
+        ]
+      },
+      { keywords: ['flutter', 'dart'], type: 'Flutter Tutorial', likelihood: 75,
+        reason: 'Flutter tutorials are very common',
+        urls: [
+          'https://docs.flutter.dev/get-started/codelab',
+          'https://www.youtube.com/results?search_query=flutter+tutorial',
+          'https://github.com/flutter/samples'
+        ]
+      },
+
+      // Machine Learning
+      { keywords: ['tensorflow', 'machine learning'], type: 'ML Tutorial', likelihood: 80,
+        reason: 'TensorFlow examples are widely available',
+        urls: [
+          'https://www.tensorflow.org/tutorials',
+          'https://www.kaggle.com/search?q=tensorflow',
+          'https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples'
+        ]
+      },
+      { keywords: ['pytorch', 'neural network'], type: 'ML Tutorial', likelihood: 80,
+        reason: 'PyTorch tutorials are extensively documented',
+        urls: [
+          'https://pytorch.org/tutorials/',
+          'https://www.youtube.com/results?search_query=pytorch+tutorial'
+        ]
+      },
+
+      // Authentication patterns
+      { keywords: ['jwt', 'authentication', 'node'], type: 'Auth Tutorial', likelihood: 85,
+        reason: 'JWT authentication is one of the most copied implementations',
+        urls: [
+          'https://www.youtube.com/results?search_query=jwt+authentication+nodejs',
+          'https://github.com/search?q=jwt-authentication-example',
+          'https://jwt.io/introduction'
+        ]
+      },
+      { keywords: ['passport', 'authentication'], type: 'Auth Tutorial', likelihood: 80,
+        reason: 'Passport.js examples are everywhere',
+        urls: [
+          'https://www.passportjs.org/tutorials/',
+          'https://github.com/search?q=passport-authentication-example'
+        ]
+      }
+    ];
+
+    // Check each framework pattern
+    frameworkPatterns.forEach(pattern => {
+      const matchCount = pattern.keywords.filter(keyword => text.includes(keyword)).length;
+      if (matchCount >= pattern.keywords.length - 1) { // Match if all or all-but-one keywords present
+        suspiciousSources.push({
+          sourceType: pattern.type,
+          likelihood: pattern.likelihood,
+          reason: pattern.reason,
+          indicators: pattern.keywords.map(k => `Contains "${k}"`),
+          possibleUrls: pattern.urls
+        });
+        commonPatterns.push(pattern.keywords.join(' + '));
+      }
+    });
+
+    // EXPANDED: Generic project types
+    const genericProjects = {
+      'library management system': {
+        urls: [
+          'https://github.com/search?q=library+management+system',
+          'https://www.sourcecodester.com/search/node/library%20management',
+          'https://code-projects.org/library-management-system/'
+        ],
+        likelihood: 70
+      },
+      'student portal': {
+        urls: [
+          'https://github.com/search?q=student+portal',
+          'https://www.sourcecodester.com/search/node/student%20portal'
+        ],
+        likelihood: 65
+      },
+      'online shopping': {
+        urls: [
+          'https://github.com/search?q=online+shopping+system',
+          'https://www.youtube.com/results?search_query=online+shopping+website+tutorial'
+        ],
+        likelihood: 75
+      },
+      'hospital management': {
+        urls: [
+          'https://github.com/search?q=hospital+management+system',
+          'https://www.sourcecodester.com/search/node/hospital%20management'
+        ],
+        likelihood: 65
+      },
+      'hotel booking': {
+        urls: [
+          'https://github.com/search?q=hotel+booking+system',
+          'https://www.youtube.com/results?search_query=hotel+booking+website'
+        ],
+        likelihood: 70
+      },
+      'chat application': {
+        urls: [
+          'https://github.com/search?q=chat+application',
+          'https://www.youtube.com/results?search_query=chat+app+tutorial',
+          'https://socket.io/get-started/chat'
+        ],
+        likelihood: 80
+      },
+      'todo app': {
+        urls: [
+          'https://github.com/search?q=todo+app',
+          'https://www.youtube.com/results?search_query=todo+app+tutorial'
+        ],
+        likelihood: 85
+      },
+      'blog system': {
+        urls: [
+          'https://github.com/search?q=blog+system',
+          'https://www.youtube.com/results?search_query=blog+website+tutorial'
+        ],
+        likelihood: 75
+      }
     };
 
-    Object.keys(genericTopics).forEach(topic => {
+    Object.keys(genericProjects).forEach(topic => {
       if (text.includes(topic)) {
         suspiciousSources.push({
-          sourceType: 'GitHub',
-          likelihood: 60,
-          reason: `"${topic}" is a common project on GitHub`,
-          indicators: [`Generic ${topic} pattern`],
-          possibleUrls: [genericTopics[topic]]
+          sourceType: 'Common Project',
+          likelihood: genericProjects[topic].likelihood,
+          reason: `"${topic}" is an extremely common tutorial project`,
+          indicators: [`Generic ${topic} detected`],
+          possibleUrls: genericProjects[topic].urls
         });
         commonPatterns.push(topic);
       }
     });
 
+    // Check for specific code snippets (common boilerplate)
+    const codePatterns = [
+      { code: 'express()', platform: 'Express.js docs',
+        url: 'https://expressjs.com/en/starter/hello-world.html', likelihood: 60 },
+      { code: 'mongoose.connect', platform: 'Mongoose docs',
+        url: 'https://mongoosejs.com/docs/index.html', likelihood: 60 },
+      { code: 'bcrypt.hash', platform: 'bcrypt examples',
+        url: 'https://www.npmjs.com/package/bcrypt', likelihood: 65 },
+      { code: 'jwt.sign', platform: 'JWT tutorials',
+        url: 'https://www.npmjs.com/package/jsonwebtoken', likelihood: 70 }
+    ];
+
+    codePatterns.forEach(pattern => {
+      if (text.includes(pattern.code.toLowerCase())) {
+        // Only add if not already flagged
+        const exists = suspiciousSources.find(s => s.possibleUrls.includes(pattern.url));
+        if (!exists) {
+          suspiciousSources.push({
+            sourceType: 'Documentation',
+            likelihood: pattern.likelihood,
+            reason: `Code matches ${pattern.platform} documentation examples`,
+            indicators: [`Contains "${pattern.code}"`],
+            possibleUrls: [pattern.url]
+          });
+        }
+      }
+    });
+
     const webPlagiarismScore = suspiciousSources.length > 0 ?
-      Math.min(80, suspiciousSources.length * 30) : 20;
+      Math.min(85, suspiciousSources.length * 25) : 15;
 
     return {
       webPlagiarismScore,
       suspiciousSources,
       commonPatterns,
-      verdict: webPlagiarismScore > 60 ? 'LIKELY_COPIED' :
+      verdict: webPlagiarismScore > 65 ? 'LIKELY_COPIED' :
               webPlagiarismScore > 35 ? 'POSSIBLY_COPIED' : 'LIKELY_ORIGINAL',
-      analysis: `Found ${suspiciousSources.length} potential web source(s). ${commonPatterns.length} common pattern(s) detected.`
+      analysis: `Detected ${suspiciousSources.length} potential source(s) with ${suspiciousSources.reduce((sum, s) => sum + s.possibleUrls.length, 0)} specific URLs. Found ${commonPatterns.length} common pattern(s).`
     };
   } catch (error) {
     console.error('Web presence analysis error:', error);
