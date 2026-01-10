@@ -6,8 +6,6 @@ import './ProjectSubmission.css';
 
 const ProjectSubmission = () => {
   const [projects, setProjects] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -21,8 +19,6 @@ const ProjectSubmission = () => {
     title: '',
     abstract: '',
     fullText: '',
-    department: '',
-    courseId: '',
   });
 
   // Helper function to show custom dialogs
@@ -43,7 +39,6 @@ const ProjectSubmission = () => {
 
   useEffect(() => {
     fetchProjects();
-    fetchDepartments();
   }, []);
 
   const fetchProjects = async () => {
@@ -56,33 +51,6 @@ const ProjectSubmission = () => {
     }
   };
 
-  const fetchDepartments = async () => {
-    try {
-      const response = await api.get('/departments');
-      setDepartments(response.data.data);
-    } catch (error) {
-      console.error('Error fetching departments:', error);
-    }
-  };
-
-  const fetchCourses = async (departmentId) => {
-    try {
-      const response = await api.get(`/courses/department/${departmentId}`);
-      setCourses(response.data.data);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-    }
-  };
-
-  const handleDepartmentChange = (e) => {
-    const deptId = e.target.value;
-    setFormData({ ...formData, department: deptId, courseId: '' });
-    if (deptId) {
-      fetchCourses(deptId);
-    } else {
-      setCourses([]);
-    }
-  };
 
   const handlePDFUpload = async (e) => {
     const file = e.target.files[0];
@@ -137,7 +105,7 @@ const ProjectSubmission = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.abstract || !formData.fullText || !formData.department) {
+    if (!formData.title || !formData.abstract || !formData.fullText) {
       showDialog('Missing Information', 'Please fill in all required fields', 'warning');
       return;
     }
@@ -151,8 +119,6 @@ const ProjectSubmission = () => {
         title: '',
         abstract: '',
         fullText: '',
-        department: '',
-        courseId: '',
       });
       setPdfFile(null);
       setUploadingPDF(false);
@@ -256,8 +222,6 @@ const ProjectSubmission = () => {
       title: '',
       abstract: '',
       fullText: '',
-      department: '',
-      courseId: '',
     });
   };
 
@@ -474,38 +438,6 @@ const ProjectSubmission = () => {
                         placeholder="Enter your project title"
                         required
                       />
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Department *</label>
-                        <select
-                          value={formData.department}
-                          onChange={handleDepartmentChange}
-                          required
-                        >
-                          <option value="">Select Department</option>
-                          {departments.map(dept => (
-                            <option key={dept._id} value={dept._id}>{dept.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="form-group">
-                        <label>Course (Optional)</label>
-                        <select
-                          value={formData.courseId}
-                          onChange={(e) => setFormData({...formData, courseId: e.target.value})}
-                          disabled={!formData.department}
-                        >
-                          <option value="">Select Course</option>
-                          {courses.map(course => (
-                            <option key={course._id} value={course._id}>
-                              {course.courseCode} - {course.courseName}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
                     </div>
 
                     <div className="form-group">
