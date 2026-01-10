@@ -15,39 +15,12 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Enable CORS - Allow all Vercel deployments and localhost
+// Enable CORS - Allow all origins for maximum compatibility
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, or Postman)
-    if (!origin) return callback(null, true);
-
-    // Allow localhost origins
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return callback(null, true);
-    }
-
-    // Allow all Vercel deployments (*.vercel.app)
-    if (origin.includes('vercel.app')) {
-      return callback(null, true);
-    }
-
-    // Allow custom frontend URL from env
-    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-      return callback(null, true);
-    }
-
-    // Allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-    const localNetworkPattern = /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
-    if (localNetworkPattern.test(origin)) {
-      return callback(null, true);
-    }
-
-    const msg = 'The CORS policy for this site does not allow access from the specified Origin: ' + origin;
-    return callback(new Error(msg), false);
-  },
+  origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Length', 'X-Request-Id'],
   maxAge: 86400, // 24 hours
   preflightContinue: false,
