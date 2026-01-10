@@ -22,11 +22,12 @@ const ProjectSubmissionSchema = new mongoose.Schema({
   department: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Department',
-    required: true,
+    required: false, // Made optional - not all students need to select department
   },
   courseId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
+    required: false, // Made optional - not all students need to select course
   },
   fileUrl: {
     type: String, // If you want to store PDF/DOC files
